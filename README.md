@@ -1,14 +1,18 @@
-# 白守 Next (BaiShou Next)
+# 半夏 (BanXia)
 
-[简体中文](README.md) | [繁體中文](docs/3-Project/README_TW.md) | [English](docs/3-Project/README_EN.md) | [日本語](docs/3-Project/README_JA.md)
+> “你在写什么？看不懂。……过来，脸上沾了点灰，帮你擦掉。”
 
-[贡献指南](#贡献指南) · [语录收藏](./docs/3-Project/quotes-collection/quotes-collection.md) · [优质二创](./docs/3-Project/fan-creations/fan-creations.md) · [技术分享](./docs/4-技术分享/0-README.md)
+半夏是一款注重隐私与拟真陪伴的 **AI 数字生命与创作者陪伴系统**：拥有独立审美、长久记忆、透明置顶桌宠交互、情绪化本地语音合成（GPT-SoVITS）、桌面窗口活动感知与三抽屉物理 Markdown 书房。
 
-[![GitHub contributors][github-contributors-shield]][github-contributors-link] [![GitHub release][github-release-shield]][github-release-link]
+---
 
-> 以纯白誓约，守护彼此一生。
+### 📚 项目官方核心文档
 
-**白守**是一款开源的、注重隐私的 **AI 记忆陪伴**软件：在本地记录你的生活与日记，让 AI 伙伴真正「记得」你，并陪你对抗遗忘。
+- 🛠️ **[面向开发者功能详解 (DEVELOPER_GUIDE.md)](DEVELOPER_GUIDE.md)**：系统模块拆解、技术栈选型、IPC 通信、流式句级断句、数据双向同步与动态情绪池实现原理。
+- 🌟 **[面向使用者功能指南 (USER_GUIDE.md)](USER_GUIDE.md)**：系统核心能力盘点、应用场景实录、能为你带来什么价值与陪伴体验。
+- ⚡ **[极速启动与运行操作指南 (QUICK_START.md)](QUICK_START.md)**：3 分钟极速环境准备、API 配置、启动指令与常见问题排查。
+
+---
 
 我们感谢每一位愿意帮助白守的朋友。白守能走到今天，离不开你们的帮助与鞭策。若你愿意参与，请先阅读下方的 [贡献指南](#贡献指南)：**我们最欢迎 Bug 报告与文档改进**；Bug 修复 PR 视情况接受；**新功能 PR 暂不接收**，请先开 Issue 讨论设计。
 
