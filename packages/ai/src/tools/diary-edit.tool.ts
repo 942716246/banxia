@@ -4,7 +4,7 @@ import type { ToolContext } from './agent.tool'
 import { runDiaryEditViaDb } from './diary-crud-db.util'
 
 const diaryEditParams = z.object({
-  date: z.string().describe('The exact date of the diary to edit. Format: YYYY-MM-DD.'),
+  date: z.string().describe('The exact date of the diary/essay to edit. Format: YYYY-MM-DD.'),
   content: z
     .string()
     .describe(
@@ -18,14 +18,22 @@ const diaryEditParams = z.object({
     .describe(
       'Edit mode. "append" adds content as a new section without generating a timestamp header (default, preferred). ' +
         '"overwrite" replaces the entire entry—use only when the user explicitly asked for a full rewrite or an in-place edit of an existing section (preserving all other sections from diary_read).'
-    )
+    ),
+  entryType: z
+    .enum(['daily_diary', 'banxia_essay', 'novel_archive'])
+    .optional()
+    .describe('The entry type if specifying target drawer (daily_diary, banxia_essay, novel_archive).'),
+  title: z
+    .string()
+    .optional()
+    .describe('New or updated title for the essay/diary.')
 })
 
 export class DiaryEditTool extends AgentTool<typeof diaryEditParams> {
   readonly name = 'diary_edit'
 
   readonly description =
-    'Modify an existing diary entry. ' +
+    'Modify an existing diary entry or essay. ' +
     'Call diary_read for the same date before editing to confirm existing content and structure. ' +
     'Never delete or drop paragraphs the user did not ask to change—keep all other sections intact. ' +
     'Default mode is "append". Compose the complete new section yourself, including any desired time heading; the system only appends it to the existing body. ' +

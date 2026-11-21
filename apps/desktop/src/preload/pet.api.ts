@@ -27,6 +27,11 @@ export const petApi = {
       ipcRenderer.on('pet:speak', handler)
       return () => ipcRenderer.off('pet:speak', handler)
     },
+    onSpeakSegment: (callback: (segment: any) => void) => {
+      const handler = (_: any, segment: any) => callback(segment)
+      ipcRenderer.on('pet:speak-segment', handler)
+      return () => ipcRenderer.off('pet:speak-segment', handler)
+    },
     onAbortSpeech: (callback: () => void) => {
       const handler = () => callback()
       ipcRenderer.on('pet:abort-speech', handler)

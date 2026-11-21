@@ -12,11 +12,13 @@ export interface GptSovitsConfig {
   textSplitMethod: string // 默认 'cut5'
 }
 
-export interface VoiceMoodEntry {
+export interface RefAudioItem {
   audioPath: string
   promptText: string
   promptLang: string
 }
+
+export type VoiceMoodEntry = RefAudioItem
 
 export type VoiceMoodMap = Record<BanXiaMood, VoiceMoodEntry>
 
@@ -33,8 +35,10 @@ export interface InferenceDirScanResult {
   gptWeights: string[] // 找到的所有 .ckpt 权重
   sovitsWeights: string[] // 找到的所有 .pth 权重
   moodMap: Partial<VoiceMoodMap> // 自动识别的情绪映射表
+  moodPools: Record<string, RefAudioItem[]> // 动态情绪音频池
   audioFiles: ScannedAudioFile[] // 扫描到的参考音频列表
   voiceMoodMapJsonPath?: string // 是否发现 voice_mood_map.json
+  availableMoods: string[] // 所有可用情绪标签名称列表
 }
 
 export interface SynthesizeOptions {

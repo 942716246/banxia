@@ -6,7 +6,9 @@ import {
   logger,
   type ActiveWindowInfo,
   categorizeWindow,
-  formatDesktopContextPrompt
+  parseActiveWindow,
+  formatDesktopContextPrompt,
+  formatDeltaDesktopContextPrompt
 } from '@baishou/shared'
 
 export type { ActiveWindowInfo }
@@ -26,6 +28,9 @@ export class DesktopPerceptionService {
   private config: DesktopPerceptionConfig = { ...DEFAULT_CONFIG }
   private configPath: string
   private cachedWindow: { info: ActiveWindowInfo | null; timestamp: number } | null = null
+  private lastInjectedTitle?: string
+  private lastInjectedProcess?: string
+  private lastInjectedTime = 0
 
   private constructor() {
     this.configPath = join(app.getPath('userData'), 'desktop-perception-config.json')
@@ -100,11 +105,41 @@ export class DesktopPerceptionService {
   }
 
   /**
-   * 获取格式化后的桌面上下文 Prompt，供对话时静默注入 System Prompt
+   * 重置增量感知状态（供测试或切会话时使用）
    */
-  public async getDesktopContextPrompt(): Promise<string | undefined> {
+  public resetDeltaState(): void {
+    this.lastInjectedTitle = undefined
+    this.lastInjectedProcess = undefined
+    this.lastInjectedTime = 0
+  }
+
+  /**
+   * 获取格式化后的桌面上下文 Prompt，供对话时静默注入 System Prompt
+   * 采用增量感知（Delta-only）：只有窗口发生切换，或者距离上次感知超过15分钟时，才在上下文中注入一次，避免每句话都重复注入。
+   */
+  public async getDesktopContextPrompt(force = false): Promise<string | undefined> {
     const win = await this.getActiveWindow()
-    return formatDesktopContextPrompt(win)
+    if (!win || !win.windowTitle || !this.config.enableWindowPerception) {
+      return undefined
+    }
+
+    const now = Date.now()
+    const DELTA_TTL_MS = 15 * 60 * 1000 // 15 分钟
+
+    if (
+      !force &&
+      this.lastInjectedTitle === win.windowTitle &&
+      this.lastInjectedProcess === win.processName &&
+      now - this.lastInjectedTime < DELTA_TTL_MS
+    ) {
+      return undefined
+    }
+
+    this.lastInjectedTitle = win.windowTitle
+    this.lastInjectedProcess = win.processName
+    this.lastInjectedTime = now
+
+    return formatDeltaDesktopContextPrompt(win)
   }
 
   /**
@@ -176,5 +211,16 @@ if ($hwnd -ne [IntPtr]::Zero) {
    */
   public categorizeWindow(processName: string, windowTitle: string): ActiveWindowInfo {
     return categorizeWindow(processName, windowTitle)
+  }
+
+  /**
+   * 原汁原味窗口感知解析（非死板规则分类）
+   */
+  public parseActiveWindow(processName: string, windowTitle: string): ActiveWindowInfo {
+    return parseActiveWindow(processName, windowTitle)
+  }
+
+  public formatDesktopContextPrompt(win: ActiveWindowInfo | null): string | undefined {
+    return formatDesktopContextPrompt(win)
   }
 }

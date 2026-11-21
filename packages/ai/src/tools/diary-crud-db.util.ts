@@ -30,7 +30,12 @@ export async function runDiaryReadViaDb(
 }
 
 export async function runDiaryWriteViaDb(
-  args: { date: string; content: string },
+  args: {
+    date: string
+    content: string
+    entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+    title?: string
+  },
   context: ToolContext
 ): Promise<string> {
   if (!context.diarySearcher?.writeEntry) {
@@ -40,8 +45,17 @@ export async function runDiaryWriteViaDb(
     return `Error: Invalid date format "${args.date}". Expected YYYY-MM-DD.`
   }
 
-  const result = await context.diarySearcher.writeEntry(args.date, args.content)
+  const result = await context.diarySearcher.writeEntry(args.date, args.content, {
+    entryType: args.entryType,
+    title: args.title
+  })
   if (result.ok === false) return result.message
+  if (args.entryType === 'banxia_essay') {
+    return `Successfully created BanXia essay "${args.title || '随笔'}" for ${args.date}.`
+  }
+  if (args.entryType === 'novel_archive') {
+    return `Successfully created novel archive "${args.title || '小说档案'}" for ${args.date}.`
+  }
   return `Successfully created diary entry for ${args.date}.`
 }
 
@@ -50,6 +64,8 @@ export async function runDiaryEditViaDb(
     date: string
     content: string
     mode?: 'append' | 'overwrite'
+    entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+    title?: string
   },
   context: ToolContext
 ): Promise<string> {
@@ -65,7 +81,9 @@ export async function runDiaryEditViaDb(
   const result = await context.diarySearcher.editEntry({
     date: args.date,
     content: args.content,
-    mode: editMode
+    mode: editMode,
+    entryType: args.entryType,
+    title: args.title
   })
 
   if (result.ok === false) return result.message

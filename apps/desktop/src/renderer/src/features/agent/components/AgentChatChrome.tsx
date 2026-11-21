@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { History, Plus } from 'lucide-react'
+import { History, Plus, Sliders } from 'lucide-react'
 import type { AgentAssistant } from './AgentSidebar'
 import { CurrentAssistantSlot } from './AgentSidebarHeader'
 import styles from './AgentChatChrome.module.css'
@@ -11,6 +11,7 @@ export interface AgentChatChromeProps {
   onAssistantSwitched: (assistant: AgentAssistant) => void
   onNewSession: () => void
   onOpenSessions?: () => void
+  onOpenPromptWorkbench?: () => void
   /** 模型切换、用量等（与会话按钮同一顶栏） */
   trailingControls?: React.ReactNode
   /**
@@ -26,10 +27,23 @@ export const AgentChatChrome: React.FC<AgentChatChromeProps> = ({
   onAssistantSwitched,
   onNewSession,
   onOpenSessions,
+  onOpenPromptWorkbench,
   trailingControls,
   variant = 'full'
 }) => {
   const { t } = useTranslation()
+
+  const promptWorkbenchBtn = onOpenPromptWorkbench ? (
+    <button
+      type="button"
+      className={`${styles.iconBtn} ${styles.iconOnlyBtn}`}
+      title="提示词调优工作台 / Prompt Workbench"
+      aria-label="提示词调优工作台"
+      onClick={onOpenPromptWorkbench}
+    >
+      <Sliders size={16} strokeWidth={2} />
+    </button>
+  ) : null
 
   const historyBtn = onOpenSessions ? (
     <button
@@ -59,6 +73,7 @@ export const AgentChatChrome: React.FC<AgentChatChromeProps> = ({
   const actions = (
     <div className={styles.actionGroup}>
       {trailingControls}
+      {promptWorkbenchBtn}
       {historyBtn}
       {newSessionBtn}
     </div>

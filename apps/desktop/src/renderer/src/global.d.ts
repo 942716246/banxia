@@ -233,6 +233,7 @@ interface PetAPI {
   getWindowPerception(): Promise<boolean>
   setWindowPerception(enabled: boolean): Promise<boolean>
   onSpeak(callback: (rawText: string) => void): () => void
+  onSpeakSegment?(callback: (segment: any) => void): () => void
   onAbortSpeech(callback: () => void): () => void
   onTachieDirChanged(callback: (dir: string) => void): () => void
   onScaleChanged(callback: (scale: number) => void): () => void
@@ -284,6 +285,13 @@ interface ProfileAPI {
   pickAndSaveBackground?(): Promise<any>
 }
 
+interface PromptWorkbenchAPI {
+  getConfig(): Promise<any>
+  saveConfig(config: any): Promise<any>
+  getAssembledPrompt(args?: { sessionId?: string; overrides?: any }): Promise<string>
+  getDefaults(): Promise<any>
+}
+
 interface AppAPI {
   onboarding: OnboardingAPI
   profile?: ProfileAPI
@@ -302,6 +310,7 @@ interface AppAPI {
   storage: StorageAPI
   tts: TtsAPI
   pet: PetAPI
+  promptWorkbench?: PromptWorkbenchAPI
   pickFiles(options?: PickFilesOptions): Promise<PickedFile[]>
   getMountedNotebooks(sessionId: string): Promise<string[]>
   setMountedNotebooks(sessionId: string, notebookIds: string[]): Promise<string[]>

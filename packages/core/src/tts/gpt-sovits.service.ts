@@ -4,6 +4,7 @@ import type { BanXiaMood } from './speech-segment.parser'
 import type {
   GptSovitsConfig,
   InferenceDirScanResult,
+  RefAudioItem,
   SynthesizeOptions,
   SynthesizeResult,
   VoiceMoodEntry,
@@ -34,6 +35,7 @@ export const DEFAULT_GPT_SOVITS_CONFIG: GptSovitsConfig = {
 export class GptSovitsService {
   private config: GptSovitsConfig
   private moodMap: Partial<VoiceMoodMap> = {}
+  private moodPools: Record<string, RefAudioItem[]> = {}
   private availableGptWeights: string[] = []
   private availableSovitsWeights: string[] = []
   private fileSystem: IFileSystem
@@ -55,12 +57,38 @@ export class GptSovitsService {
     return { ...this.moodMap }
   }
 
+  public getMoodPools(): Record<string, RefAudioItem[]> {
+    return { ...this.moodPools }
+  }
+
+  public setMoodPool(mood: string, items: RefAudioItem[]): void {
+    this.moodPools[mood] = [...items]
+  }
+
+  public getAvailableMoods(): string[] {
+    const moods = Object.keys(this.moodPools).filter(
+      (m) => !['neutral', 'happiness', 'sadness', 'anger', 'fear', 'teasing', 'shy'].includes(m)
+    )
+    if (moods.length === 0) {
+      return ['正常', '开心', '害羞', '生气', '难过', '坏笑']
+    }
+    return moods
+  }
+
   public setMoodEntry(mood: BanXiaMood, entry: VoiceMoodEntry): void {
     this.moodMap[mood] = entry
+    if (!this.moodPools[mood]) this.moodPools[mood] = []
+    this.moodPools[mood]!.push(entry)
   }
 
   public setMoodMap(map: Partial<VoiceMoodMap>): void {
     this.moodMap = { ...this.moodMap, ...map }
+    for (const [k, v] of Object.entries(map)) {
+      if (v) {
+        if (!this.moodPools[k]) this.moodPools[k] = []
+        this.moodPools[k]!.push(v)
+      }
+    }
   }
 
   public getAvailableWeights(): { gpt: string[]; sovits: string[] } {
@@ -81,7 +109,9 @@ export class GptSovitsService {
         gptWeights: [],
         sovitsWeights: [],
         moodMap: {},
-        audioFiles: []
+        moodPools: {},
+        audioFiles: [],
+        availableMoods: ['正常', '开心', '害羞', '生气', '难过', '坏笑']
       }
     }
 
@@ -89,6 +119,7 @@ export class GptSovitsService {
     this.availableGptWeights = result.gptWeights
     this.availableSovitsWeights = result.sovitsWeights
     this.moodMap = { ...this.moodMap, ...result.moodMap }
+    this.moodPools = { ...this.moodPools, ...result.moodPools }
     this.config.inferenceDir = targetDir
 
     // 默认选用第一个权重
@@ -181,12 +212,55 @@ export class GptSovitsService {
     }
 
     const mood = options.mood || 'neutral'
-    const moodRef = this.moodMap[mood] || this.moodMap.neutral
+    let chosenRef: RefAudioItem | undefined
 
-    const refAudioPath = options.refAudioPath || moodRef?.audioPath
-    const promptText = options.promptText ?? moodRef?.promptText ?? ''
+    // 1. 优先从动态情绪池中随机抽选一条参考音频（避免语调机械单一）
+    const pool = this.moodPools[mood]
+    if (pool && pool.length > 0) {
+      chosenRef = pool[Math.floor(Math.random() * pool.length)]
+    }
+
+    // 2. 若未匹配，尝试常用别名
+    if (!chosenRef) {
+      const altKey =
+        mood === 'neutral'
+          ? '正常'
+          : mood === 'happiness'
+            ? '开心'
+            : mood === 'anger'
+              ? '生气'
+              : mood === 'sadness'
+                ? '难过'
+                : mood === 'teasing'
+                  ? '坏笑'
+                  : mood === 'shy'
+                    ? '害羞'
+                    : undefined
+      if (altKey && this.moodPools[altKey] && this.moodPools[altKey]!.length > 0) {
+        const altPool = this.moodPools[altKey]!
+        chosenRef = altPool[Math.floor(Math.random() * altPool.length)]
+      }
+    }
+
+    // 3. 尝试 moodMap 单项
+    if (!chosenRef) {
+      chosenRef = this.moodMap[mood]
+    }
+
+    // 4. 兜底 neutral / 正常池
+    if (!chosenRef) {
+      const neutralPool = this.moodPools['neutral'] || this.moodPools['正常']
+      if (neutralPool && neutralPool.length > 0) {
+        chosenRef = neutralPool[Math.floor(Math.random() * neutralPool.length)]
+      } else {
+        chosenRef = this.moodMap.neutral
+      }
+    }
+
+    const refAudioPath = options.refAudioPath || chosenRef?.audioPath
+    const promptText = options.promptText ?? chosenRef?.promptText ?? ''
     const promptLang =
-      options.promptLang || moodRef?.promptLang || this.config.defaultPromptLang || 'ja'
+      options.promptLang || chosenRef?.promptLang || this.config.defaultPromptLang || 'ja'
     const textLang = options.textLang || this.config.defaultTextLang || 'zh'
     const speedFactor = options.speedFactor || this.config.speedFactor || 1.0
 

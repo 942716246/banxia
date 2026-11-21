@@ -238,11 +238,20 @@ export interface ToolDiarySearcher {
   ): Promise<Array<{ date: string; preview: string }>>
   /** 按日期读取日记全文（移动端经 DiaryService） */
   readByDates?(dates: string[]): Promise<Array<{ date: string; content: string | null }>>
-  writeEntry?(date: string, content: string): Promise<ToolDiaryMutationResult>
+  writeEntry?(
+    date: string,
+    content: string,
+    extra?: {
+      entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+      title?: string
+    }
+  ): Promise<ToolDiaryMutationResult>
   editEntry?(args: {
     date: string
     content: string
     mode?: 'append' | 'overwrite'
+    entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+    title?: string
   }): Promise<ToolDiaryMutationResult>
   deleteEntry?(date: string): Promise<ToolDiaryMutationResult>
 }

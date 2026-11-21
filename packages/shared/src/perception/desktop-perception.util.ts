@@ -1,7 +1,7 @@
 export interface ActiveWindowInfo {
   processName: string
   windowTitle: string
-  category: 'writing' | 'art' | 'gaming' | 'browsing' | 'general'
+  category?: 'writing' | 'art' | 'gaming' | 'browsing' | 'general' | string
   description: string
 }
 
@@ -28,7 +28,21 @@ export function filterSensitiveTitle(title: string): string {
 }
 
 /**
- * 将活动窗口按半夏生活与审美感知习惯进行语义分类
+ * 原汁原味窗口感知解析（非死板规则分类，将真实进程与窗口名交由大语言模型自由推理）
+ */
+export function parseActiveWindow(processName: string, rawWindowTitle: string): ActiveWindowInfo {
+  const windowTitle = filterSensitiveTitle(rawWindowTitle)
+  const cleanProcess = processName.replace(/\.exe$/i, '').trim()
+  return {
+    processName,
+    windowTitle,
+    category: 'general',
+    description: `[${cleanProcess}] ${windowTitle}`
+  }
+}
+
+/**
+ * 将活动窗口按半夏生活与审美感知习惯进行语义分类（兼容旧版调用）
  */
 export function categorizeWindow(processName: string, rawWindowTitle: string): ActiveWindowInfo {
   const windowTitle = filterSensitiveTitle(rawWindowTitle)
@@ -128,4 +142,10 @@ export function categorizeWindow(processName: string, rawWindowTitle: string): A
 export function formatDesktopContextPrompt(win: ActiveWindowInfo | null): string | undefined {
   if (!win) return undefined
   return `当前桌面活动状态：${win.description}`
+}
+
+export function formatDeltaDesktopContextPrompt(win: ActiveWindowInfo | null): string | undefined {
+  if (!win || !win.windowTitle) return undefined
+  const proc = win.processName.replace(/\.exe$/i, '').trim()
+  return `[环境感知：魂小小当前的桌面窗口切换为「${win.windowTitle}」（进程：${proc}）]`
 }

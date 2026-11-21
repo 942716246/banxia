@@ -13,6 +13,7 @@ import { graphApi } from './graph.api'
 import { knowledgeApi } from './knowledge.api'
 import { petApi } from './pet.api'
 import { ttsApi } from './tts.api'
+import { promptWorkbenchApi } from './prompt-workbench.api'
 import { applyPersistedPageZoom } from './apply-persisted-page-zoom'
 
 const preloadStarted = performance.now()
@@ -59,6 +60,7 @@ export const api = {
   ...knowledgeApi,
   ...petApi,
   ...ttsApi,
+  ...promptWorkbenchApi,
   agentWorkspace: agentWorkspaceApi,
   shortcuts: shortcutsApi,
   skills: skillsApi

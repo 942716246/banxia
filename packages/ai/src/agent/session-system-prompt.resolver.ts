@@ -220,6 +220,36 @@ export async function buildSystemPromptForSession(
     }
   }
 
+  const promptWorkbench = (params.userConfig as any)?.promptWorkbenchConfig as
+    | {
+        personaPrompt?: string
+        userIdentityPrompt?: string
+        companionAndToolPrompt?: string
+        expressionProtocolTemplate?: string
+        availableMoods?: string[]
+      }
+    | undefined
+
+  const effectivePersona = promptWorkbench?.personaPrompt?.trim()
+    ? promptWorkbench.personaPrompt.trim()
+    : effectiveSystemPrompt
+
+  const effectiveUserIdentity = promptWorkbench?.userIdentityPrompt?.trim()
+    ? promptWorkbench.userIdentityPrompt.trim()
+    : typeof params.userConfig?.userCard === 'string'
+      ? params.userConfig.userCard
+      : undefined
+
+  const effectiveCompanionAndTool = promptWorkbench?.companionAndToolPrompt?.trim()
+    ? promptWorkbench.companionAndToolPrompt.trim()
+    : undefined
+
+  const expressionProtocolTemplate = promptWorkbench?.expressionProtocolTemplate?.trim()
+    ? promptWorkbench.expressionProtocolTemplate.trim()
+    : undefined
+
+  const availableMoods = promptWorkbench?.availableMoods
+
   return SystemPromptBuilder.build({
     vaultName: resolveVaultIdentity({
       vaultId: sessionObj?.vaultId,
@@ -228,10 +258,13 @@ export async function buildSystemPromptForSession(
       defaultName: 'Personal'
     }).name,
     tools: enabledTools as any,
-    customPersona: effectiveSystemPrompt,
+    customPersona: effectivePersona,
+    userIdentityPrompt: effectiveUserIdentity,
+    companionAndToolPrompt: effectiveCompanionAndTool,
+    expressionProtocolTemplate,
+    availableMoods,
     assistantKind,
-    userProfileBlock:
-      typeof params.userConfig?.userCard === 'string' ? params.userConfig.userCard : undefined,
+    userProfileBlock: effectiveUserIdentity,
     diaryAiWritingPrompt:
       typeof params.userConfig?.diaryAiWritingPrompt === 'string'
         ? params.userConfig.diaryAiWritingPrompt

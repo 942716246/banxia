@@ -107,6 +107,8 @@ export {
   SENSITIVE_TITLE_KEYWORDS,
   filterSensitiveTitle,
   categorizeWindow,
-  formatDesktopContextPrompt
+  parseActiveWindow,
+  formatDesktopContextPrompt,
+  formatDeltaDesktopContextPrompt
 } from '@baishou/shared'
 

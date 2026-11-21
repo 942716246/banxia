@@ -110,13 +110,25 @@ export function createDiarySearcher(target?: { vaultId?: string; vaultName?: str
         }
         return rows
       },
-      async writeEntry(date: string, content: string) {
+      async writeEntry(
+        date: string,
+        content: string,
+        extra?: {
+          entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+          title?: string
+        }
+      ) {
         try {
           const diaryService = await resolveDiaryService()
+          const entryType = extra?.entryType || 'daily_diary'
+          const authorRole = entryType === 'banxia_essay' ? 'assistant' : 'user'
           const saved = await diaryService.create({
             date: parseDateStr(date),
-            ...prepareDiarySearcherWrite(content)
-          })
+            ...prepareDiarySearcherWrite(content),
+            entryType,
+            authorRole,
+            title: extra?.title
+          } as any)
           broadcastAgentDiarySyncEvent('saved', date, saved)
           return { ok: true as const }
         } catch (e) {
@@ -132,7 +144,13 @@ export function createDiarySearcher(target?: { vaultId?: string; vaultName?: str
           }
         }
       },
-      async editEntry({ date, content, mode }) {
+      async editEntry({ date, content, mode, entryType, title }: {
+        date: string
+        content: string
+        mode?: 'append' | 'overwrite'
+        entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+        title?: string
+      }) {
         try {
           const diaryService = await resolveDiaryService()
           const existing = await diaryService.findByDate(parseDateStr(date))
@@ -143,9 +161,15 @@ export function createDiarySearcher(target?: { vaultId?: string; vaultName?: str
             }
           }
 
+          const updatePayload: any = {
+            ...prepareDiarySearcherEdit(existing.content, content, mode)
+          }
+          if (title) updatePayload.title = title
+          if (entryType) updatePayload.entryType = entryType
+
           const saved = await diaryService.update(
             existing.id,
-            prepareDiarySearcherEdit(existing.content, content, mode)
+            updatePayload
           )
           broadcastAgentDiarySyncEvent('saved', date, saved)
           return { ok: true as const }

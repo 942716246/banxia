@@ -2,7 +2,7 @@ import * as path from 'path'
 import { logger } from '@baishou/shared'
 import type { IFileSystem } from '../fs/file-system.types'
 import type { BanXiaMood } from './speech-segment.parser'
-import type { InferenceDirScanResult, ScannedAudioFile, VoiceMoodMap } from './gpt-sovits.types'
+import type { InferenceDirScanResult, RefAudioItem, ScannedAudioFile, VoiceMoodMap } from './gpt-sovits.types'
 
 const MOOD_ALIASES: Record<string, BanXiaMood> = {
   neutral: 'neutral',
@@ -77,6 +77,22 @@ async function scanDirRecursive(
  *    - 格式 2：同名标注文件（.lab / .txt）
  *    - 格式 3：文件名内嵌情绪与参考台词（如 `【开心】台词.wav`）
  */
+const IGNORED_SUBDIR_NAMES = new Set([
+  'audios',
+  'audio',
+  'wav',
+  'wavs',
+  'voices',
+  'samples',
+  'data',
+  'weights',
+  'models',
+  'ref',
+  'refs',
+  'reference',
+  'references'
+])
+
 export async function scanInferenceDirectory(
   dirPath: string,
   fileSystem: IFileSystem
@@ -85,6 +101,7 @@ export async function scanInferenceDirectory(
   const sovitsWeights: string[] = []
   const audioFiles: ScannedAudioFile[] = []
   const moodMap: Partial<VoiceMoodMap> = {}
+  const moodPools: Record<string, RefAudioItem[]> = {}
   let voiceMoodMapJsonPath: string | undefined
 
   if (!(await fileSystem.exists(dirPath))) {
@@ -93,7 +110,9 @@ export async function scanInferenceDirectory(
       gptWeights,
       sovitsWeights,
       moodMap,
-      audioFiles
+      moodPools,
+      audioFiles,
+      availableMoods: ['正常', '开心', '害羞', '生气', '难过', '坏笑']
     }
   }
 
@@ -114,22 +133,40 @@ export async function scanInferenceDirectory(
       const targetMoods = parsed.moods || parsed.overrides || parsed
       if (typeof targetMoods === 'object' && targetMoods !== null) {
         for (const [key, val] of Object.entries(targetMoods)) {
-          const mood = MOOD_ALIASES[key.toLowerCase()]
-          if (!mood || typeof val !== 'object' || val === null) continue
+          const items = Array.isArray(val) ? val : [val]
+          for (const item of items) {
+            if (typeof item !== 'object' || item === null) continue
 
-          const valObj = val as any
-          const audioRelOrAbs = valObj.audio || valObj.audioPath || valObj.path || ''
-          const prompt = valObj.prompt || valObj.promptText || valObj.text || ''
-          const lang = valObj.lang || valObj.promptLang || 'ja'
+            const valObj = item as any
+            const audioRelOrAbs = valObj.audio || valObj.audioPath || valObj.path || ''
+            const prompt = valObj.prompt || valObj.promptText || valObj.text || ''
+            const lang = valObj.lang || valObj.promptLang || 'ja'
 
-          const audioPath = path.isAbsolute(audioRelOrAbs)
-            ? audioRelOrAbs
-            : path.join(baseDir, audioRelOrAbs)
+            const audioPath = path.isAbsolute(audioRelOrAbs)
+              ? audioRelOrAbs
+              : path.join(baseDir, audioRelOrAbs)
 
-          moodMap[mood] = {
-            audioPath,
-            promptText: prompt,
-            promptLang: lang
+            const refItem: RefAudioItem = {
+              audioPath,
+              promptText: prompt,
+              promptLang: lang
+            }
+
+            const pool = moodPools[key] ?? (moodPools[key] = [])
+            pool.push(refItem)
+
+            const alias = MOOD_ALIASES[key.toLowerCase()]
+            if (alias && alias !== key) {
+              const aliasPool = moodPools[alias] ?? (moodPools[alias] = [])
+              aliasPool.push(refItem)
+            }
+
+            if (!moodMap[key as BanXiaMood]) {
+              moodMap[key as BanXiaMood] = refItem
+            }
+            if (alias && !moodMap[alias]) {
+              moodMap[alias] = refItem
+            }
           }
         }
       }
@@ -148,6 +185,7 @@ export async function scanInferenceDirectory(
     } else if (ext === '.pth') {
       sovitsWeights.push(filePath)
     } else if (ext === '.wav' || ext === '.mp3') {
+      let rawMoodName: string | undefined
       let detectedMood: BanXiaMood | undefined
       let promptText: string | undefined
       let promptLang = 'ja'
@@ -155,20 +193,37 @@ export async function scanInferenceDirectory(
       // 格式 3：检查文件名中是否内嵌【情绪】或 [mood]
       const bracketMatch = baseName.match(/^[【\[]([a-zA-Z\u4e00-\u9fa5]+)[】\]](.*)$/)
       if (bracketMatch && bracketMatch[1]) {
-        const rawMood = bracketMatch[1].trim()
+        rawMoodName = bracketMatch[1].trim()
         const rawPrompt = bracketMatch[2]?.trim()
-        detectedMood = MOOD_ALIASES[rawMood.toLowerCase()]
         if (rawPrompt) {
           promptText = rawPrompt
         }
       } else {
+        // 检查父级子目录名是否作为情绪分类（例如 /开心/01.wav），忽略 generic 目录（audios/voices 等）
+        const relDir = path.relative(dirPath, path.dirname(filePath))
+        const parts = relDir.split(/[\\/]/).filter((p) => p && p !== '.')
+        if (parts.length > 0 && parts[0]) {
+          const candidate = parts[0].trim().toLowerCase()
+          if (!IGNORED_SUBDIR_NAMES.has(candidate)) {
+            if (MOOD_ALIASES[candidate] || /^[a-zA-Z\u4e00-\u9fa5]+$/.test(candidate)) {
+              rawMoodName = parts[0].trim()
+            }
+          }
+        }
+      }
+
+      if (!rawMoodName) {
         // 尝试从文件名中的关键词猜测情绪
-        for (const [alias, mood] of Object.entries(MOOD_ALIASES)) {
+        for (const [alias] of Object.entries(MOOD_ALIASES)) {
           if (baseName.includes(alias)) {
-            detectedMood = mood
+            rawMoodName = alias
             break
           }
         }
+      }
+
+      if (rawMoodName) {
+        detectedMood = MOOD_ALIASES[rawMoodName.toLowerCase()] || rawMoodName
       }
 
       // 格式 2：检查同目录下是否存在同名 .lab 或 .txt 文件
@@ -217,13 +272,25 @@ export async function scanInferenceDirectory(
       }
       audioFiles.push(scannedAudio)
 
-      // 如果尚未在 moodMap 中映射该情绪，且成功识别到了情绪，则自动填充
+      const audioRef: RefAudioItem = {
+        audioPath: filePath,
+        promptText,
+        promptLang
+      }
+
+      // 填充情绪池
+      if (rawMoodName) {
+        const pool = moodPools[rawMoodName] ?? (moodPools[rawMoodName] = [])
+        pool.push(audioRef)
+      }
+      if (detectedMood && detectedMood !== rawMoodName) {
+        const pool = moodPools[detectedMood] ?? (moodPools[detectedMood] = [])
+        pool.push(audioRef)
+      }
+
+      // 如果尚未在 moodMap 中映射该情绪，且成功识别到了情绪，则自动填充首项
       if (detectedMood && !moodMap[detectedMood]) {
-        moodMap[detectedMood] = {
-          audioPath: filePath,
-          promptText,
-          promptLang
-        }
+        moodMap[detectedMood] = audioRef
       }
     }
   }
@@ -231,19 +298,35 @@ export async function scanInferenceDirectory(
   // 如果没有识别到 neutral，但有音频文件，将第一个音频文件作为 neutral 兜底
   if (!moodMap.neutral && audioFiles.length > 0 && audioFiles[0]) {
     const first = audioFiles[0]
-    moodMap.neutral = {
+    const defaultRef: RefAudioItem = {
       audioPath: first.path,
       promptText: first.promptText || first.name,
       promptLang: first.promptLang || 'ja'
     }
+    moodMap.neutral = defaultRef
+    if (!moodPools.neutral) moodPools.neutral = [defaultRef]
+    if (!moodPools['正常']) moodPools['正常'] = [defaultRef]
   }
+
+  const moodSet = new Set<string>()
+  for (const k of Object.keys(moodPools)) {
+    if (k && !['neutral', 'happiness', 'sadness', 'anger', 'fear', 'teasing', 'shy'].includes(k)) {
+      moodSet.add(k)
+    }
+  }
+  if (moodSet.size === 0) {
+    ;['正常', '开心', '害羞', '生气', '难过', '坏笑'].forEach((m) => moodSet.add(m))
+  }
+  const availableMoods = Array.from(moodSet)
 
   return {
     inferenceDir: dirPath,
     gptWeights,
     sovitsWeights,
     moodMap,
+    moodPools,
     audioFiles,
-    voiceMoodMapJsonPath
+    voiceMoodMapJsonPath,
+    availableMoods
   }
 }

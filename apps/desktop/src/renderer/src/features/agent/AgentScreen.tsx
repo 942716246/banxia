@@ -25,6 +25,7 @@ import { AgentDialogs } from './components/AgentDialogs'
 import { AgentMessageList } from './components/AgentMessageList'
 import { AgentChatChrome } from './components/AgentChatChrome'
 import chromeStyles from './components/AgentChatChrome.module.css'
+import { PromptWorkbenchDrawer } from '../prompt-workbench/PromptWorkbenchDrawer'
 import { useAgentChatFlow } from './hooks/useAgentChatFlow'
 import { useDesktopComposerDraftKey } from './hooks/useDesktopComposerDraftKey'
 import { useAgentGateQueuePager } from './hooks/useAgentGateQueuePager'
@@ -256,6 +257,8 @@ export const AgentScreen: React.FC = () => {
     !flow.stream.isBridgeActive &&
     !flow.stream.isCompressing
 
+  const [showPromptWorkbench, setShowPromptWorkbench] = useState(false)
+
   return (
     <div className={styles.screen}>
       <AgentChatChrome
@@ -264,6 +267,13 @@ export const AgentScreen: React.FC = () => {
         onAssistantSwitched={(assistant) => void onAssistantSwitched?.(assistant)}
         onNewSession={() => onNewSession?.()}
         onOpenSessions={() => onOpenSessions?.()}
+        onOpenPromptWorkbench={() => setShowPromptWorkbench(true)}
+      />
+
+      <PromptWorkbenchDrawer
+        open={showPromptWorkbench}
+        onClose={() => setShowPromptWorkbench(false)}
+        sessionId={flow.sessionId}
       />
 
       {!isEmptyIdle ? (

@@ -18,7 +18,16 @@ export type { WorkspaceEnvInfo }
 export interface SystemPromptBuilderOptions {
   vaultName: string
   tools: Record<string, any> // 此刻所有通过了验证准备好交给模型的 Tool 实例集
+  /** 模块 A：半夏人设覆盖（留空则默认 920 字 BANXIA_CORE_PERSONA） */
   customPersona?: string
+  /** 模块 B：用户身份描述覆盖（留空则默认 HUNXIAOXIAO_USER_IDENTITY） */
+  userIdentityPrompt?: string
+  /** 模块 C：陪伴与工具调用准则覆盖 */
+  companionAndToolPrompt?: string
+  /** 模块 D：立绘与情绪输出协议模板（支持 {{AVAILABLE_MOODS}} 占位符） */
+  expressionProtocolTemplate?: string
+  /** 可用情绪列表（用于动态填充 {{AVAILABLE_MOODS}}） */
+  availableMoods?: string[]
   customGuidelines?: string
   userProfileBlock?: string
   /** 伙伴使用写日记 / 编辑日记工具时的书写规范 */
@@ -45,6 +54,10 @@ export interface SystemPromptBuilderOptions {
    */
   skillsInstruction?: { catalog: string[]; deltas: string[] }
 }
+
+export const DEFAULT_EXPRESSION_PROTOCOL_TEMPLATE = `在每一句或每段话开头，可自然附带一个立绘情绪标记（仅限：{{AVAILABLE_MOODS}}）。
+示例："[坏笑] 你在写什么，看不懂。[正常] 过来，脸上沾了点灰，帮你擦掉。"
+规则：标记必须自然融入表达，根据真实心境切换，不需要每一句话都强制标注；系统会在入库与展示前自动剥离标记，保持聊天记录纯净。`
 
 function pushSection(buffer: string[], tag: string, lines: string[]): void {
   if (lines.length === 0) return
@@ -170,10 +183,13 @@ export class SystemPromptBuilder {
       pushSection(buffer, 'context_encoding', buildContextEncodingSystemPromptLines())
     }
 
-    // 5. user_identity（默认魂小小用户卡）
-    const effectiveUserProfile = (userProfileBlock && userProfileBlock.trim().length > 0)
-      ? userProfileBlock.trim()
-      : HUNXIAOXIAO_USER_IDENTITY
+    // 5. user_identity（默认魂小小用户卡，支持 Module B 覆盖）
+    const effectiveUserProfile =
+      options.userIdentityPrompt && options.userIdentityPrompt.trim().length > 0
+        ? options.userIdentityPrompt.trim()
+        : userProfileBlock && userProfileBlock.trim().length > 0
+          ? userProfileBlock.trim()
+          : HUNXIAOXIAO_USER_IDENTITY
     pushSection(buffer, 'user_identity', [
       '[Important: The following identity card describes the USER (human), NOT you (the AI assistant). Use this information to personalize your responses, but NEVER claim these facts as your own identity.]',
       effectiveUserProfile
@@ -245,8 +261,10 @@ export class SystemPromptBuilder {
       pushSection(buffer, 'available_tools', ['No tools are currently available.'])
     }
 
-    // 8. tool_usage_guidelines
-    if (toolUsageGuidelines) {
+    // 8. tool_usage_guidelines (支持 Module C 覆盖)
+    if (options.companionAndToolPrompt?.trim()) {
+      pushSection(buffer, 'companion_guidelines', [options.companionAndToolPrompt.trim()])
+    } else if (toolUsageGuidelines) {
       pushSection(buffer, 'tool_usage_guidelines', [toolUsageGuidelines])
     }
 
@@ -269,12 +287,16 @@ export class SystemPromptBuilder {
       ])
     }
 
-    // 12. expression_protocol（轻量级立绘/情绪标记输出协议）
-    pushSection(buffer, 'expression_protocol', [
-      '在每一句或每段话开头，可自然附带一个立绘情绪标记（仅限：[正常]、[开心]、[害羞]、[生气]、[难过]、[坏笑]）。',
-      '示例："[坏笑] 你在写什么，看不懂。[正常] 过来，脸上沾了点灰，帮你擦掉。"',
-      '规则：标记必须自然融入表达，根据真实心境切换，不需要每一句话都强制标注；系统会在入库与展示前自动剥离标记，保持聊天记录纯净。'
-    ])
+    // 12. expression_protocol（轻量级立绘/情绪标记输出协议，支持 Module D 模板与 {{AVAILABLE_MOODS}} 动态替换）
+    const moodList =
+      options.availableMoods && options.availableMoods.length > 0
+        ? options.availableMoods.map((m) => `[${m}]`).join('、')
+        : '[正常]、[开心]、[害羞]、[生气]、[难过]、[坏笑]'
+
+    const template =
+      options.expressionProtocolTemplate?.trim() || DEFAULT_EXPRESSION_PROTOCOL_TEMPLATE
+    const renderedProtocol = template.replace('{{AVAILABLE_MOODS}}', moodList)
+    pushSection(buffer, 'expression_protocol', renderedProtocol.split('\n'))
 
     return buffer.join('\n').trimEnd() + '\n'
   }

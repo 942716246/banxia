@@ -5,7 +5,9 @@ import {
   appendTimelineToolStart,
   completeTimelineTool,
   logger,
-  type AgentStreamTimelineItem
+  type AgentStreamTimelineItem,
+  StreamingSentenceBuffer,
+  type SpeechSegment
 } from '@baishou/shared'
 
 export interface ActiveMainStreamSnapshot {
@@ -26,6 +28,7 @@ export interface ActiveMainStreamSnapshot {
 }
 
 const activeStreamSnapshots = new Map<string, ActiveMainStreamSnapshot>()
+const activeStreamBuffers = new Map<string, StreamingSentenceBuffer>()
 
 function ensureActiveMainStreamSnapshot(sessionId: string): ActiveMainStreamSnapshot {
   let snap = activeStreamSnapshots.get(sessionId)
@@ -62,9 +65,11 @@ export function beginMainStreamSnapshot(sessionId: string): void {
 export function clearMainStreamSnapshot(sessionId?: string): void {
   if (!sessionId) {
     activeStreamSnapshots.clear()
+    activeStreamBuffers.clear()
     return
   }
   activeStreamSnapshots.delete(sessionId)
+  activeStreamBuffers.delete(sessionId)
 }
 
 export function getActiveMainStreamSnapshot(sessionId: string): ActiveMainStreamSnapshot | null {
@@ -104,6 +109,24 @@ export class ElectronStreamEmitter implements IStreamEmitter {
     const snap = ensureActiveMainStreamSnapshot(sessionId)
     snap.text += delta
     appendTimelineText(snap.timeline, delta)
+
+    // 流式切句即时分发至桌宠语音队列，消除首句长达 6-8s 的静默等待
+    let buffer = activeStreamBuffers.get(sessionId)
+    if (!buffer) {
+      buffer = new StreamingSentenceBuffer({
+        onSentence: (segment: SpeechSegment) => {
+          try {
+            const { PetWindowManager } = require('../windows/pet.window')
+            PetWindowManager.getInstance().sendToPet('pet:speak-segment', segment)
+          } catch (e: any) {
+            logger.warn('[ElectronStreamEmitter] Failed to dispatch speak segment to pet:', e)
+          }
+        }
+      })
+      activeStreamBuffers.set(sessionId, buffer)
+    }
+    buffer.append(delta)
+
     this.safeSend('agent:stream-chunk', { sessionId, chunk })
   }
 
@@ -162,16 +185,19 @@ export class ElectronStreamEmitter implements IStreamEmitter {
     logger.info(
       `[ElectronStreamEmitter] sendFinish - sessionId=${sessionId}, payload=${JSON.stringify(payload)}`
     )
-    const snap = activeStreamSnapshots.get(sessionId)
-    const rawText = snap?.text
-    if (payload.success && rawText && rawText.trim()) {
-      try {
-        const { PetWindowManager } = require('../windows/pet.window')
-        PetWindowManager.getInstance().sendToPet('pet:speak', rawText)
-      } catch (e: any) {
-        logger.warn('[ElectronStreamEmitter] Failed to notify pet of speech:', e)
+    const buffer = activeStreamBuffers.get(sessionId)
+    if (buffer) {
+      if (payload.success) {
+        buffer.flush()
+      } else {
+        try {
+          const { PetWindowManager } = require('../windows/pet.window')
+          PetWindowManager.getInstance().sendToPet('pet:abort-speech')
+        } catch {}
       }
+      activeStreamBuffers.delete(sessionId)
     }
+
     clearMainStreamSnapshot(sessionId)
     this.safeSend('agent:stream-finish', { sessionId, ...payload })
   }

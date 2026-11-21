@@ -221,11 +221,19 @@ export const PetScreen: React.FC = () => {
 
     queueRef.current = queue
 
-    // 监听全局说话指令
+    // 监听全局说话指令（整段文本与流式切句）
     const unbindSpeak = window.api?.pet?.onSpeak((rawText: string) => {
       const segments = parseSpeechSegments(rawText)
       void queueRef.current?.enqueue(segments)
     })
+
+    const unbindSpeakSegment = (window.api?.pet as any)?.onSpeakSegment?.(
+      (segment: any) => {
+        if (segment) {
+          void queueRef.current?.enqueue([segment])
+        }
+      }
+    )
 
     const unbindAbort = window.api?.pet?.onAbortSpeech(() => {
       queueRef.current?.abort()
@@ -241,6 +249,7 @@ export const PetScreen: React.FC = () => {
 
     return () => {
       unbindSpeak?.()
+      unbindSpeakSegment?.()
       unbindAbort?.()
       unbindScale?.()
       unbindTachie?.()

@@ -151,6 +151,9 @@ export async function buildAgentUserConfigFromSettings(options?: {
     'dialogue'
   )
 
+  const promptWorkbenchConfig =
+    (await settingsManager.get<any>('prompt_workbench_config')) ?? undefined
+
   return {
     ragEnabled: ragConfig?.ragEnabled ?? true,
     rag_top_k: clampRagTopK(ragConfig?.ragTopK),
@@ -180,7 +183,8 @@ export async function buildAgentUserConfigFromSettings(options?: {
     locale,
     baishou_agent_gate_config,
     reasoningEffort: dialogueEffort,
-    reasoningEffortDefault: dialogueEffort
+    reasoningEffortDefault: dialogueEffort,
+    promptWorkbenchConfig
   }
 }
 

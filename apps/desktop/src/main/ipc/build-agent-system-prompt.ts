@@ -40,7 +40,8 @@ async function resolveSearchModeEnabled(explicit?: boolean): Promise<boolean> {
 
 export async function buildAgentSystemPrompt(
   sessionId: string,
-  searchMode?: boolean
+  searchMode?: boolean,
+  userConfigOverride?: Record<string, unknown>
 ): Promise<string> {
   const { realSessionRepo, realAssistantRepo } = getAgentManagers()
   const session = await realSessionRepo.getSessionById(sessionId)
@@ -167,7 +168,10 @@ export async function buildAgentSystemPrompt(
     assistantRepo: {
       findById: async (id) => (await realAssistantRepo.findById(id)) ?? null
     },
-    userConfig: userConfig as Record<string, unknown>,
+    userConfig: {
+      ...(userConfig as Record<string, unknown>),
+      ...(userConfigOverride || {})
+    },
     provider,
     modelId,
     systemModels: systemModels as any,
