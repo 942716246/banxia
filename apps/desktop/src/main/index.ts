@@ -37,6 +37,8 @@ import { registerUpdaterIPC } from './ipc/updater.ipc'
 import { registerShellIPC } from './ipc/shell.ipc'
 import { registerSkillIPC } from './ipc/skill.ipc'
 import { registerDiagnosticLogIPC } from './ipc/diagnostic-log.ipc'
+import { registerGptSovitsIPC } from './ipc/gpt-sovits.ipc'
+import { registerPetIPC } from './ipc/pet.ipc'
 import {
   bootstrapDiagnosticLogFromDisk,
   installDesktopDiagnosticLogCapture
@@ -564,6 +566,8 @@ app.whenReady().then(async () => {
     registerShellIPC()
     registerSkillIPC()
     registerDiagnosticLogIPC()
+    registerGptSovitsIPC()
+    registerPetIPC(() => mainWindow)
   })
 
   // 3. 确保创建 mainWindow，因为全量引导（如全局快捷键）依赖该实例结构

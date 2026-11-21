@@ -174,7 +174,12 @@ export function parseExtractJson(text: string): LlmExtractPayload | null {
 export function buildExtractPrompt(
   diaryText: string,
   dateStr: string | null,
-  selfName: string
+  selfName: string,
+  options?: {
+    authorRole?: string
+    entryType?: string
+    assistantName?: string
+  }
 ): {
   system: string
   user: string
@@ -182,6 +187,14 @@ export function buildExtractPrompt(
   const nodeTypes = GRAPH_NODE_TYPES.join(', ')
   const edgeTypes = GRAPH_EDGE_TYPES.join(', ')
   const author = selfName.trim()
+  const isAssistantAuthor =
+    options?.authorRole === 'assistant' || options?.entryType === 'banxia_essay'
+  const assistantName = options?.assistantName?.trim() || '半夏'
+
+  const rule7 = isAssistantAuthor
+    ? `7. 本文是角色「${assistantName}」以第一人称写下的私人随笔。文中的第一人称「我」以及作者本人，统一使用「${assistantName}」作为 person 实体名；文中提及的「${author}」（或他）统一映射为实体「${author}」。严禁将「我」映射为用户！`
+    : `7. 日记中的第一人称「我」以及作者本人，统一使用自称「${author}」作为 person 实体名；禁止使用「日记的主人」「作者」「用户」等占位称呼`
+
   return {
     system: '你是日记关系图谱抽取器。只输出严格 JSON，不要 markdown 代码块，不要额外解释。',
     user: `从以下日记中抽取实体与关系。
@@ -193,7 +206,7 @@ export function buildExtractPrompt(
 4. 实体 name 用日记中的称呼；可填 aliases
 5. edges.from / edges.to 使用实体 name（或 entry 锚点名）
 6. 每篇日记都有一个结构性锚点 entry（name 用日期或「日记」），实体应尽量连到 entry（mentions / participates_in / evokes 等）
-7. 日记中的第一人称「我」以及作者本人，统一使用自称「${author}」作为 person 实体名；禁止使用「日记的主人」「作者」「用户」等占位称呼
+${rule7}
 
 ## 日记日期
 ${dateStr || '未知'}

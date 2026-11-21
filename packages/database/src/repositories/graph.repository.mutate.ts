@@ -456,6 +456,60 @@ export class GraphMutateOps {
     }
   }
 
+  /**
+   * 级联删除指定 sourceRef（日记/随笔文档标识）的所有关系边，并清理由此产生的不含其他边的孤立实体节点
+   */
+  async deleteEdgesAndPruneOrphanNodesBySourceRef(
+    vaultId: string,
+    sourceRef: string
+  ): Promise<void> {
+    const edges = await this.database
+      .select({
+        id: graphEdgesTable.id,
+        fromId: graphEdgesTable.fromId,
+        toId: graphEdgesTable.toId
+      })
+      .from(graphEdgesTable)
+      .where(and(eq(graphEdgesTable.vaultId, vaultId), eq(graphEdgesTable.sourceRef, sourceRef)))
+
+    if (edges.length === 0) return
+
+    const candidateNodeIds = new Set<string>()
+    for (const edge of edges) {
+      candidateNodeIds.add(edge.fromId)
+      candidateNodeIds.add(edge.toId)
+    }
+
+    // 1. 删除所有来自该 sourceRef 的边
+    await this.database
+      .delete(graphEdgesTable)
+      .where(and(eq(graphEdgesTable.vaultId, vaultId), eq(graphEdgesTable.sourceRef, sourceRef)))
+
+    // 2. 检查候选节点是否还有其他边连接；若无任何边且不是 entry 锚点，则级联清理孤立节点
+    for (const nodeId of candidateNodeIds) {
+      const remainingEdges = await this.database
+        .select({ id: graphEdgesTable.id })
+        .from(graphEdgesTable)
+        .where(
+          and(
+            eq(graphEdgesTable.vaultId, vaultId),
+            or(eq(graphEdgesTable.fromId, nodeId), eq(graphEdgesTable.toId, nodeId))
+          )
+        )
+        .limit(1)
+
+      if (remainingEdges.length === 0) {
+        const node = await this.lookup.getNodeById(nodeId, vaultId)
+        if (node && node.nodeType !== 'entry') {
+          await this.database
+            .delete(graphNodeAliasesTable)
+            .where(eq(graphNodeAliasesTable.nodeId, nodeId))
+          await this.database.delete(graphNodesTable).where(eq(graphNodesTable.id, nodeId))
+        }
+      }
+    }
+  }
+
   /** Removes the node row. Incident edges are removed unless cascadeEdges is false. */
   async softDeleteNode(id: string, opts?: { cascadeEdges?: boolean }): Promise<void> {
     if (opts?.cascadeEdges !== false) {

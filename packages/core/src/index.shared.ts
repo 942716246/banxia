@@ -48,6 +48,8 @@ export * from './session/session-disk-persistence.service'
 
 export * from './assistant/assistant-file.service'
 export * from './assistant/assistant-manager.service'
+export * from './preset/banxia-preset-data'
+export * from './preset/banxia-seed.service'
 export * from './assistant/ensure-default-latte-assistant'
 export * from './assistant/ensure-system-latte-assistant'
 
@@ -98,3 +100,13 @@ export * from './graph'
 export * from './sync/version-manager.interface'
 export * from './sync/version-manager.fs.service'
 export { VersionBackupError, VersionRestoreError, VersionNotFoundError } from './sync/sync.errors'
+export * from './tts'
+export * from './pet'
+export {
+  type ActiveWindowInfo,
+  SENSITIVE_TITLE_KEYWORDS,
+  filterSensitiveTitle,
+  categorizeWindow,
+  formatDesktopContextPrompt
+} from '@baishou/shared'
+

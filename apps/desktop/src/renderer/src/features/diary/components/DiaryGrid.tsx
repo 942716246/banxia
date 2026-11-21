@@ -15,7 +15,7 @@ interface DiaryGridProps {
   loading: boolean
   storageIndexing?: boolean
   attachmentBasePath: string
-  onGoToEditor: (dateStr: string) => void
+  onGoToEditor: (entry: DiaryEntry) => void
   onDeleteEntry: (id: number) => void
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
@@ -135,8 +135,8 @@ export const DiaryGrid: React.FC<DiaryGridProps> = ({
           <div key={entry.id} style={{ height: '100%' }}>
             <DiaryCard
               entry={entry}
-              onClick={() => onGoToEditor(formatDateStr(entry.date))}
-              onEdit={() => onGoToEditor(formatDateStr(entry.date))}
+              onClick={() => onGoToEditor(entry)}
+              onEdit={() => onGoToEditor(entry)}
               onDelete={() => onDeleteEntry(entry.id)}
               t={t as any}
               basePath={attachmentBasePath}

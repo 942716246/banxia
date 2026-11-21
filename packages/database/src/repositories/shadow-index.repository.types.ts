@@ -19,6 +19,10 @@ export interface ShadowJournalRecord {
   locationDetail: string | null
   isFavorite: boolean
   hasMedia: boolean
+  entryType?: string | null
+  authorRole?: string | null
+  title?: string | null
+  slug?: string | null
 }
 
 /** 全量扫描脏检测用的轻量指纹（hash + mtime/size + filePath） */
@@ -51,6 +55,10 @@ export interface UpsertShadowIndexPayload {
   locationDetail?: string | null
   isFavorite: boolean
   hasMedia: boolean
+  entryType?: string | null
+  authorRole?: string | null
+  title?: string | null
+  slug?: string | null
   /** raw markdown content 用于 FTS 索引 */
   rawContent: string
   /** 逗号分隔的标签字符串 */
@@ -94,4 +102,6 @@ export interface DiaryListFilterOptions {
   limit?: number
   offset?: number
   orderBy?: 'asc' | 'desc'
+  entryType?: string
+  authorRole?: string
 }

@@ -22,6 +22,7 @@ export interface DiaryPageQuery {
   filterWeathers: string[]
   filterMoods: string[]
   filterFavorite: boolean
+  entryType?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
   page: number
   pageSize: number
 }
@@ -31,6 +32,10 @@ function buildListFilter(query: DiaryPageQuery): DiaryListFilter {
     limit: query.pageSize,
     offset: (query.page - 1) * query.pageSize,
     orderBy: 'desc'
+  }
+
+  if (query.entryType) {
+    filter.entryType = query.entryType
   }
 
   if (query.selectedMonth) {
@@ -58,6 +63,10 @@ function buildSearchFilter(
   query: DiaryPageQuery
 ): Omit<DiaryListFilter, 'limit' | 'offset' | 'orderBy'> {
   const filter: Omit<DiaryListFilter, 'limit' | 'offset' | 'orderBy'> = {}
+
+  if (query.entryType) {
+    filter.entryType = query.entryType
+  }
 
   if (query.filterFavorite) {
     filter.favorite = true

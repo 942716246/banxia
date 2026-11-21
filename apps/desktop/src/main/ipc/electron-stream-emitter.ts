@@ -162,6 +162,16 @@ export class ElectronStreamEmitter implements IStreamEmitter {
     logger.info(
       `[ElectronStreamEmitter] sendFinish - sessionId=${sessionId}, payload=${JSON.stringify(payload)}`
     )
+    const snap = activeStreamSnapshots.get(sessionId)
+    const rawText = snap?.text
+    if (payload.success && rawText && rawText.trim()) {
+      try {
+        const { PetWindowManager } = require('../windows/pet.window')
+        PetWindowManager.getInstance().sendToPet('pet:speak', rawText)
+      } catch (e: any) {
+        logger.warn('[ElectronStreamEmitter] Failed to notify pet of speech:', e)
+      }
+    }
     clearMainStreamSnapshot(sessionId)
     this.safeSend('agent:stream-finish', { sessionId, ...payload })
   }

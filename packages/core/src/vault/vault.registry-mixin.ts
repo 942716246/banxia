@@ -52,7 +52,7 @@ export abstract class VaultRegistryMixin extends VaultIdentityBase {
           this._vaults = await writeNextVaultRegistry(this.fileSystem, rootDir, discovered)
           shouldSave = false
         } else {
-          const defaultVaultName = 'Personal'
+          const defaultVaultName = '半夏'
           const defaultVaultPath = await this.pathService.getVaultDirectory(defaultVaultName)
 
           this._vaults = [
@@ -102,7 +102,7 @@ export abstract class VaultRegistryMixin extends VaultIdentityBase {
         }
 
         if (this._vaults.length === 0) {
-          const defaultVaultName = 'Personal'
+          const defaultVaultName = '半夏'
           const defaultVaultPath = await this.pathService.getVaultDirectory(defaultVaultName)
           this._vaults = [
             {
@@ -162,11 +162,11 @@ export abstract class VaultRegistryMixin extends VaultIdentityBase {
           }
         }
       } catch {
-        const defaultVaultPath = await this.pathService.getVaultDirectory('Personal')
+        const defaultVaultPath = await this.pathService.getVaultDirectory('半夏')
         this._vaults = [
           {
             id: createRandomVaultId(),
-            name: 'Personal',
+            name: '半夏',
             path: defaultVaultPath,
             createdAt: new Date(),
             lastAccessedAt: new Date()

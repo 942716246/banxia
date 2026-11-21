@@ -110,6 +110,10 @@ export class ShadowIndexRepository {
     return this.queryOps.findById(...args)
   }
 
+  async findByFilePath(...args: Parameters<ShadowIndexQueryOps['findByFilePath']>) {
+    return this.queryOps.findByFilePath(...args)
+  }
+
   async findByDate(...args: Parameters<ShadowIndexQueryOps['findByDate']>) {
     return this.queryOps.findByDate(...args)
   }

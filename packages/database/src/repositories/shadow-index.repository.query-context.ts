@@ -44,6 +44,10 @@ export class ShadowIndexQueryContext {
       locationDetail: (row.location_detail ?? row.locationDetail ?? null) as string | null,
       isFavorite: Boolean(row.is_favorite ?? row.isFavorite),
       hasMedia: Boolean(row.has_media ?? row.hasMedia),
+      entryType: String(row.entry_type ?? row.entryType ?? 'daily_diary'),
+      authorRole: String(row.author_role ?? row.authorRole ?? 'user'),
+      title: (row.title as string | null) ?? null,
+      slug: (row.slug as string | null) ?? null,
       rawContent: (row.raw_content ?? row.rawContent ?? null) as string | null,
       tags: (row.tags ?? null) as string | null,
       tagColors: (row.tag_colors ?? row.tagColors ?? null) as string | null

@@ -322,6 +322,17 @@ export class ShadowIndexSyncService {
             locationDetail: diary.locationDetail ?? null,
             isFavorite: diary.isFavorite,
             hasMedia: (diary.mediaPaths?.length ?? 0) > 0,
+            entryType:
+              diary.entryType ??
+              (relFilePath.startsWith('Essays/')
+                ? 'banxia_essay'
+                : relFilePath.startsWith('Novels/')
+                  ? 'novel_archive'
+                  : 'daily_diary'),
+            authorRole:
+              diary.authorRole ?? (relFilePath.startsWith('Essays/') ? 'assistant' : 'user'),
+            title: diary.title ?? null,
+            slug: diary.slug ?? null,
             rawContent: diary.content ?? '',
             tags: (diary.tags ?? []).join(','),
             tagColors:
@@ -400,7 +411,11 @@ export class ShadowIndexSyncService {
             weather: d.weather || undefined,
             mood: d.mood || undefined,
             location: d.location || undefined,
-            isFavorite: d.isFavorite || false
+            isFavorite: d.isFavorite || false,
+            entryType: (p.entryType as any) || 'daily_diary',
+            authorRole: (p.authorRole as any) || 'user',
+            title: p.title || undefined,
+            slug: p.slug || undefined
           }
           const res = { meta, isChanged: true }
           results.push(res)

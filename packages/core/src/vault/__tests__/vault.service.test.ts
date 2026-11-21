@@ -170,10 +170,11 @@ describe('VaultService Integration', () => {
     await service.ensureVaultsRegistered(['C__Users_Desktop_OldVault'])
     expect(service.vaultExists('C__Users_Desktop_OldVault')).toBe(true)
 
-    const removed = await service.pruneOrphanRegistryVaults(new Set(['Personal']), ['Personal'])
+    const defaultVault = service.getActiveVault()?.name ?? '半夏'
+    const removed = await service.pruneOrphanRegistryVaults(new Set([defaultVault]), [defaultVault])
     expect(removed).toEqual(['C__Users_Desktop_OldVault'])
     expect(service.vaultExists('C__Users_Desktop_OldVault')).toBe(false)
-    expect(service.vaultExists('Personal')).toBe(true)
+    expect(service.vaultExists(defaultVault)).toBe(true)
   })
 
   it('createVault rejects case-insensitive duplicate names', async () => {

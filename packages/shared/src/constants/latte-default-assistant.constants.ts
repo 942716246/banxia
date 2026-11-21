@@ -18,7 +18,7 @@ export const DEFAULT_LATTE_ASSISTANT_ID = 'default'
  */
 export const SYSTEM_LATTE_ASSISTANT_ID = 'latte'
 
-export const LATTE_ASSISTANT_NAME = 'Latte'
+export const LATTE_ASSISTANT_NAME = '半夏'
 
 /** Q 版立绘（桌面 / 移动端共用，源文件在 packages/shared/assets/images/） */
 export const LATTE_CHIBI_IMAGE_PATH = 'assets/images/latte-chibi.png'
@@ -29,8 +29,10 @@ export const LATTE_ASSISTANT_DESCRIPTION = getDefaultLatteAssistantDescription('
 /** @deprecated 请使用 {@link getDefaultLatteAssistantSystemPrompt} */
 export const LATTE_ASSISTANT_SYSTEM_PROMPT = getDefaultLatteAssistantSystemPrompt('zh')
 
-/** 曾用于内置默认助手的旧名称（用于无损升级到 Latte） */
+/** 曾用于内置默认助手的旧名称（用于无损升级到半夏） */
 export const LEGACY_DEFAULT_ASSISTANT_NAMES = [
+  'Latte',
+  '拉提',
   '默认伙伴',
   'Default Companion',
   'Default Assistant',

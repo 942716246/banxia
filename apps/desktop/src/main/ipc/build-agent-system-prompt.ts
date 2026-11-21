@@ -65,6 +65,14 @@ export async function buildAgentSystemPrompt(
   const { desktopExtraVercelToolsFactory } = await import('../services/mcp-client-runtime')
   const binding = await getWorkspaceSessionBinding(sessionId)
 
+  let desktopContext: string | undefined
+  try {
+    const { DesktopPerceptionService } = await import('../services/desktop-perception.service')
+    desktopContext = await DesktopPerceptionService.getInstance().getDesktopContextPrompt()
+  } catch {
+    // ignore
+  }
+
   if (binding?.folderRoot) {
     const folderRoot = binding.folderRoot
     const workspaceId = await resolveOrCreateWorkspaceIdByFolder(folderRoot)
@@ -130,6 +138,7 @@ export async function buildAgentSystemPrompt(
       skillsWriter: createDesktopSkillsWriter({ folderRoot }),
       skillsReader: createDesktopSkillsReader({ folderRoot }),
       skillsCatalog,
+      desktopContext,
       extraVercelToolsFactory: desktopExtraVercelToolsFactory,
       agentGate,
       gateProfile: AgentGateProfileId.Workspace,
@@ -177,6 +186,7 @@ export async function buildAgentSystemPrompt(
     skillsWriter: companionHost.skillsWriter,
     skillsReader: companionHost.skillsReader,
     skillsCatalog: companionHost.skillsCatalog,
+    desktopContext,
     extraVercelToolsFactory: desktopExtraVercelToolsFactory,
     agentGate: companionHost.agentGate as any,
     resolveVaultDisplayName: companionHost.resolveVaultDisplayName,

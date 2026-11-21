@@ -97,6 +97,7 @@ export interface GraphWrite {
     sourceRef: string,
     opts?: { keepUserOrigin?: boolean; exceptIds?: ReadonlySet<string> }
   ): Promise<void>
+  deleteEdgesAndPruneOrphanNodesBySourceRef?(vaultId: string, sourceRef: string): Promise<void>
   /** Clears the node vector only. The entity row stays. */
   clearNodeEmbedding(id: string, vaultId: string): Promise<void>
   /** Hard-delete this vault's life-graph rows. Does not touch notebook graphs. */

@@ -77,10 +77,10 @@ describe('SummaryPromptTemplates', () => {
   })
 
   it('getDefaultTemplate should return templates for all types', () => {
-    expect(getDefaultTemplate(SummaryType.weekly)).toContain('周总结')
-    expect(getDefaultTemplate(SummaryType.monthly)).toContain('月度总结')
-    expect(getDefaultTemplate(SummaryType.quarterly)).toContain('季度总结')
-    expect(getDefaultTemplate(SummaryType.yearly)).toContain('年度回顾')
+    expect(getDefaultTemplate(SummaryType.weekly)).toContain('半夏')
+    expect(getDefaultTemplate(SummaryType.monthly)).toContain('半夏')
+    expect(getDefaultTemplate(SummaryType.quarterly)).toContain('半夏')
+    expect(getDefaultTemplate(SummaryType.yearly)).toContain('半夏')
   })
 })
 

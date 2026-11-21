@@ -23,6 +23,9 @@ export function getWeatherEmoji(weather?: string): string {
   return '🌤️'
 }
 
+export type EntryType = 'banxia_essay' | 'novel_archive' | 'daily_diary'
+export type AuthorRole = 'assistant' | 'user'
+
 export const DiarySchema = z.object({
   id: z.number().int().positive().optional(),
   date: z.date(),
@@ -36,7 +39,11 @@ export const DiarySchema = z.object({
   location: z.string().optional().nullable(),
   locationDetail: z.string().optional().nullable(),
   isFavorite: z.boolean().default(false),
-  mediaPaths: z.array(z.string()).default([])
+  mediaPaths: z.array(z.string()).default([]),
+  entryType: z.enum(['banxia_essay', 'novel_archive', 'daily_diary']).optional(),
+  authorRole: z.enum(['assistant', 'user']).optional(),
+  title: z.string().optional().nullable(),
+  slug: z.string().optional().nullable()
 })
 
 export type Diary = z.infer<typeof DiarySchema>
@@ -58,6 +65,10 @@ export interface DiaryMeta {
   hasMedia?: boolean
   /** 从 frontmatter tag_colors 解析的标签配色 */
   tagColors?: Record<string, number>
+  entryType?: EntryType
+  authorRole?: AuthorRole
+  title?: string
+  slug?: string
 }
 
 /** 日记列表服务端筛选 / 分页参数 */
@@ -71,6 +82,8 @@ export interface DiaryListFilter {
   limit?: number
   offset?: number
   orderBy?: 'asc' | 'desc'
+  entryType?: EntryType
+  authorRole?: AuthorRole
 }
 
 export interface TimelineNode {

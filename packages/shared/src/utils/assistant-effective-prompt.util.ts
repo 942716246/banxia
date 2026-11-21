@@ -19,6 +19,10 @@ function applyCustomAssistantNameToFactoryPersona(
     return persona
   }
   return persona
+    .replace(/半夏（Banxia）/g, trimmedName)
+    .replace(/你是\*\*半夏\*\*/g, `你是**${trimmedName}**`)
+    .replace(/你是半夏/g, `你是${trimmedName}`)
+    .replace(/角色核心设定：半夏/g, `角色核心设定：${trimmedName}`)
     .replace(/Latte（拉提）/g, trimmedName)
     .replace(/Latte（ラテ）/g, trimmedName)
     .replace(/\bLatte\b/g, trimmedName)

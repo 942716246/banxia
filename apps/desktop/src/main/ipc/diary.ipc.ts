@@ -86,7 +86,11 @@ export function registerDiaryIPC() {
             location: saved.location ?? undefined,
             isFavorite: saved.isFavorite ?? false,
             hasMedia: (saved.mediaPaths?.length ?? 0) > 0,
-            updatedAt: saved.updatedAt
+            updatedAt: saved.updatedAt,
+            entryType: saved.entryType ?? 'daily_diary',
+            authorRole: saved.authorRole ?? 'user',
+            title: saved.title ?? undefined,
+            slug: saved.slug ?? undefined
           }
         })
       }

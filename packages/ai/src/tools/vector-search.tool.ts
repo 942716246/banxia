@@ -211,6 +211,49 @@ export class VectorSearchTool extends AgentTool<typeof vectorSearchParams> {
         lines.push('')
       }
 
+      // ── 碎片检索 -> 溯源随笔/日记原文父子链路 ──
+      if (context.vectorStore?.getSourceDocument) {
+        const seenSourceIds = new Set<string>()
+        const originDocs: Array<import('./agent.tool').SourceOriginDocument> = []
+
+        for (const r of results) {
+          const sType = r.sourceType?.trim() || ''
+          const sId = (r.sourceId || '').trim()
+          if (!sId || seenSourceIds.has(sId)) continue
+          if (
+            sType === 'diary' ||
+            sType.startsWith('diary') ||
+            sType === 'banxia_essay' ||
+            sType === 'novel_archive'
+          ) {
+            seenSourceIds.add(sId)
+            const doc = await context.vectorStore.getSourceDocument(sType, sId, vaultId)
+            if (doc && doc.rawContent) {
+              originDocs.push(doc)
+              if (originDocs.length >= 2) break
+            }
+          }
+        }
+
+        if (originDocs.length > 0) {
+          lines.push('═══════════════════════════════════════════')
+          lines.push(
+            '【溯源：你（半夏）过往写下的随笔或阅读日记原文（请自然化用其中的事实与口吻，切勿生硬背诵）】'
+          )
+          lines.push('═══════════════════════════════════════════')
+          for (const doc of originDocs) {
+            const titleStr = doc.title ? `《${doc.title}》` : doc.date ? `（${doc.date}）` : ''
+            const roleStr =
+              doc.authorRole === 'assistant' || doc.entryType === 'banxia_essay'
+                ? '你（半夏）写下的随笔'
+                : '日记记录'
+            lines.push(`\n▶ 溯源文档: ${titleStr} [${roleStr}]`)
+            lines.push(doc.rawContent.trim())
+          }
+          lines.push('')
+        }
+      }
+
       return lines.join('\n')
     } catch (e) {
       return `语义搜索失败: ${formatAiApiCallError(e)}`

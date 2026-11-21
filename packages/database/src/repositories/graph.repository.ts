@@ -140,6 +140,12 @@ export class GraphRepository implements GraphRepositoryPort {
     return this.run(() => this.mutate.supersedeEdgesBySourceRef(...args))
   }
 
+  deleteEdgesAndPruneOrphanNodesBySourceRef(
+    ...args: Parameters<GraphMutateOps['deleteEdgesAndPruneOrphanNodesBySourceRef']>
+  ) {
+    return this.run(() => this.mutate.deleteEdgesAndPruneOrphanNodesBySourceRef(...args))
+  }
+
   softDeleteNode(...args: Parameters<GraphMutateOps['softDeleteNode']>) {
     return this.run(() => this.mutate.softDeleteNode(...args))
   }

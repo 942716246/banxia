@@ -75,7 +75,7 @@ describe('summary settings → generation options mapping', () => {
 
   it('default generation templates are format-only (no role preamble)', () => {
     const weekly = getDefaultSummaryTemplate('weekly', 'zh')
-    expect(weekly).toContain('周总结')
+    expect(weekly).toContain('周记随笔')
     expect(weekly).not.toContain('你是一个专业的个人传记')
     expect(weekly).not.toContain('禁止输出任何问候语')
 

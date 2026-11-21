@@ -550,3 +550,32 @@
     transform: rotate(360deg);
   }
 }
+
+.de-title-bar {
+  padding: 12px 24px 8px;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.de-title-input {
+  width: 100%;
+  font-size: 20px;
+  font-weight: 700;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 4px 0;
+  border-bottom: 1px dashed var(--border-subtle, rgba(0, 0, 0, 0.08));
+  transition: border-color var(--duration-swift);
+}
+
+.de-title-input:focus {
+  border-bottom-color: var(--color-primary, #6366f1);
+}
+
+.de-title-input::placeholder {
+  color: var(--text-tertiary, #94a3b8);
+  font-weight: 400;
+}
+

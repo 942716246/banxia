@@ -1,8 +1,14 @@
-import { ToolVectorStore, ToolMessageSearcher, VectorSearchResult } from '../agent.tool'
+import {
+  ToolVectorStore,
+  ToolMessageSearcher,
+  VectorSearchResult,
+  SourceOriginDocument
+} from '../agent.tool'
 import {
   SqliteHybridSearchRepository,
   MessageRepository,
   summariesTable,
+  shadowJournalIndexTable,
   type AppDatabase
 } from '@baishou/database'
 import { eq, and, desc } from 'drizzle-orm'
@@ -52,6 +58,54 @@ export class DatabaseAdapter implements ToolVectorStore, ToolMessageSearcher {
     const scoped = String(vaultId ?? this.tryVaultId() ?? '').trim()
     if (!scoped) return null
     return this.hybridRepo.getBySource(sourceType, sourceId, { vaultId: scoped })
+  }
+
+  async getSourceDocument(
+    sourceType: string,
+    sourceId: string,
+    _vaultId?: string
+  ): Promise<SourceOriginDocument | null> {
+    if (
+      sourceType === 'diary' ||
+      sourceType === 'banxia_essay' ||
+      sourceType === 'novel_archive' ||
+      sourceType.startsWith('diary')
+    ) {
+      const idMatch = sourceId.match(/(\d+)$/)
+      const numId = idMatch ? parseInt(idMatch[1]!, 10) : null
+      if (numId) {
+        try {
+          const rows = await this.db
+            .select({
+              id: shadowJournalIndexTable.id,
+              date: shadowJournalIndexTable.date,
+              rawContent: shadowJournalIndexTable.rawContent,
+              title: shadowJournalIndexTable.title,
+              entryType: shadowJournalIndexTable.entryType,
+              authorRole: shadowJournalIndexTable.authorRole,
+              filePath: shadowJournalIndexTable.filePath
+            })
+            .from(shadowJournalIndexTable)
+            .where(eq(shadowJournalIndexTable.id, numId))
+            .limit(1)
+
+          if (rows[0] && rows[0].rawContent) {
+            return {
+              sourceId,
+              rawContent: rows[0].rawContent,
+              title: rows[0].title,
+              entryType: rows[0].entryType,
+              authorRole: rows[0].authorRole,
+              date: rows[0].date,
+              filePath: rows[0].filePath
+            }
+          }
+        } catch (e) {
+          console.warn('[DatabaseAdapter] getSourceDocument error:', e)
+        }
+      }
+    }
+    return null
   }
 
   async deleteFile(filePath: string): Promise<void> {

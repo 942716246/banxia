@@ -1,8 +1,10 @@
 import { ShadowIndexRepository } from '@baishou/database'
 import {
+  AuthorRole,
   Diary,
   DiaryListFilter,
   DiaryMeta,
+  EntryType,
   moodMatchesFilter,
   normalizeDiaryPreviewMarkdown,
   normalizeDiaryTagColorRegistry,
@@ -35,7 +37,11 @@ export function buildDiaryFromShadowRow(
     location: shadow.location ?? undefined,
     locationDetail: shadow.locationDetail ?? undefined,
     isFavorite: shadow.isFavorite,
-    mediaPaths: []
+    mediaPaths: [],
+    entryType: (shadow.entryType as EntryType) ?? 'daily_diary',
+    authorRole: (shadow.authorRole as AuthorRole) ?? 'user',
+    title: shadow.title ?? undefined,
+    slug: shadow.slug ?? undefined
   }
 }
 
@@ -53,6 +59,10 @@ export function mapShadowRowToMeta(
     tags?: string | null
     tagsStr?: string | null
     tagColors?: string | null
+    entryType?: EntryType | string | null
+    authorRole?: AuthorRole | string | null
+    title?: string | null
+    slug?: string | null
   },
   previewOverride?: string
 ): DiaryMeta {
@@ -72,7 +82,11 @@ export function mapShadowRowToMeta(
     mood: resolveMoodId(s.mood) ?? undefined,
     location: s.location || undefined,
     isFavorite: s.isFavorite || false,
-    hasMedia: s.hasMedia || false
+    hasMedia: s.hasMedia || false,
+    entryType: (s.entryType as EntryType) ?? undefined,
+    authorRole: (s.authorRole as AuthorRole) ?? undefined,
+    title: s.title ?? undefined,
+    slug: s.slug ?? undefined
   }
 }
 
@@ -81,6 +95,8 @@ export function hasPostSearchFilter(
 ): boolean {
   return Boolean(
     filter.favorite ||
+    filter.entryType ||
+    filter.authorRole ||
     (filter.weathers && filter.weathers.length > 0) ||
     (filter.moods && filter.moods.length > 0) ||
     (filter.year != null && filter.month != null)
@@ -91,6 +107,12 @@ export function matchesListFilter(
   meta: DiaryMeta,
   filter: Omit<DiaryListFilter, 'limit' | 'offset' | 'orderBy'>
 ): boolean {
+  if (filter.entryType && (meta.entryType || 'daily_diary') !== filter.entryType) {
+    return false
+  }
+  if (filter.authorRole && (meta.authorRole || 'user') !== filter.authorRole) {
+    return false
+  }
   if (filter.year != null && filter.month != null) {
     if (meta.date.getFullYear() !== filter.year || meta.date.getMonth() + 1 !== filter.month) {
       return false

@@ -80,6 +80,10 @@ export interface DiaryEntry {
   location?: string
   isFavorite?: boolean
   hasMedia?: boolean
+  title?: string
+  slug?: string
+  entryType?: 'banxia_essay' | 'novel_archive' | 'daily_diary'
+  authorRole?: 'user' | 'assistant'
 }
 
 /** DiaryCard 组件属性 */
@@ -180,6 +184,48 @@ export const DiaryCard: React.FC<DiaryCardProps> = React.memo(
 
         {/* 内容预览 */}
         <div className="diary-card-content">
+          {entry.title && (
+            <div
+              className="diary-card-title"
+              style={{
+                fontWeight: 600,
+                fontSize: '15px',
+                marginBottom: '6px',
+                color: 'var(--text-primary, #333)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {entry.entryType === 'banxia_essay' && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(230, 126, 34, 0.15)',
+                    color: '#d35400'
+                  }}
+                >
+                  随笔
+                </span>
+              )}
+              {entry.entryType === 'novel_archive' && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(52, 152, 219, 0.15)',
+                    color: '#2980b9'
+                  }}
+                >
+                  小说
+                </span>
+              )}
+              <span>{entry.title}</span>
+            </div>
+          )}
           <div className="diary-card-content-text">
             {previewBlocks.map((block, index) =>
               block.kind === 'quote' ? (

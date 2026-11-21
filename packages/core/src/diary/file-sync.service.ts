@@ -46,25 +46,54 @@ export class FileSyncServiceImpl implements FileSyncService {
   private async resolveWriteFilePath(
     rootPath: string,
     date: Date,
-    shadowFilePath?: string
+    shadowFilePath?: string,
+    entryType?: string,
+    slug?: string | null,
+    title?: string | null
   ): Promise<string> {
+    if (shadowFilePath) {
+      return resolveShadowJournalAbsolutePath(rootPath, shadowFilePath)
+    }
+    const vaultRoot = path.dirname(rootPath)
+    if (entryType === 'banxia_essay') {
+      const safeTitle = title ? title.replace(/[\\/:*?"<>|\s]/g, '_') : null
+      const filename = `${slug || safeTitle || Date.now()}.md`
+      return path.join(vaultRoot, 'Essays', filename)
+    }
+    if (entryType === 'novel_archive') {
+      const safeTitle = title ? title.replace(/[\\/:*?"<>|\s]/g, '_') : null
+      const filename = `${slug || safeTitle || Date.now()}.md`
+      return path.join(vaultRoot, 'Novels', filename)
+    }
     const dateStr = formatLocalDate(date)
-    const hintPath = shadowFilePath
-      ? resolveShadowJournalAbsolutePath(rootPath, shadowFilePath)
-      : undefined
-    const existingPath = await resolveJournalFilePath(this.fileSystem, rootPath, dateStr, hintPath)
+    const existingPath = await resolveJournalFilePath(this.fileSystem, rootPath, dateStr)
     return existingPath ?? this.buildFilePath(rootPath, date)
   }
 
   async writeJournal(diary: CreateDiaryInput | Diary, shadowFilePath?: string): Promise<void> {
     const rootPath = await this.pathService.getJournalsBaseDirectory()
-    const filePath = await this.resolveWriteFilePath(rootPath, diary.date, shadowFilePath)
+    const entryType = 'entryType' in diary ? diary.entryType : undefined
+    const slug = 'slug' in diary ? diary.slug : undefined
+    const title = 'title' in diary ? diary.title : undefined
+    const filePath = await this.resolveWriteFilePath(
+      rootPath,
+      diary.date,
+      shadowFilePath,
+      entryType,
+      slug,
+      title
+    )
 
     await this.ensureDir(path.dirname(filePath))
 
     const lines: string[] = ['---']
     if ('id' in diary && diary.id) lines.push(`id: ${diary.id}`)
     lines.push(`date: ${formatLocalDate(diary.date)}`)
+
+    if ('entryType' in diary && diary.entryType) lines.push(`entry_type: ${diary.entryType}`)
+    if ('authorRole' in diary && diary.authorRole) lines.push(`author_role: ${diary.authorRole}`)
+    if ('title' in diary && diary.title) lines.push(`title: ${JSON.stringify(diary.title)}`)
+    if ('slug' in diary && diary.slug) lines.push(`slug: ${diary.slug}`)
 
     if ('tagColors' in diary && diary.tagColors) {
       const colorMap =
@@ -107,7 +136,10 @@ export class FileSyncServiceImpl implements FileSyncService {
     const hintPath = shadowFilePath
       ? resolveShadowJournalAbsolutePath(rootPath, shadowFilePath)
       : undefined
-    const filePath = await resolveJournalFilePath(this.fileSystem, rootPath, dateStr, hintPath)
+    const filePath =
+      hintPath && (await this.fileSystem.exists(hintPath))
+        ? hintPath
+        : await resolveJournalFilePath(this.fileSystem, rootPath, dateStr, hintPath)
     if (!filePath) return null
 
     const raw = await this.fileSystem.readFile(filePath, 'utf8')
@@ -120,7 +152,10 @@ export class FileSyncServiceImpl implements FileSyncService {
     const hintPath = shadowFilePath
       ? resolveShadowJournalAbsolutePath(rootPath, shadowFilePath)
       : undefined
-    const filePath = await resolveJournalFilePath(this.fileSystem, rootPath, dateStr, hintPath)
+    const filePath =
+      hintPath && (await this.fileSystem.exists(hintPath))
+        ? hintPath
+        : await resolveJournalFilePath(this.fileSystem, rootPath, dateStr, hintPath)
     if (filePath && (await this.fileSystem.exists(filePath))) {
       await this.fileSystem.unlink(filePath)
     }
@@ -148,7 +183,11 @@ export class FileSyncServiceImpl implements FileSyncService {
       location: parsed.location,
       locationDetail: parsed.locationDetail,
       isFavorite: parsed.isFavorite,
-      mediaPaths: parsed.mediaPaths
+      mediaPaths: parsed.mediaPaths,
+      entryType: (parsed.entryType as any) || 'daily_diary',
+      authorRole: (parsed.authorRole as any) || 'user',
+      title: parsed.title,
+      slug: parsed.slug
     } as Diary
   }
 }

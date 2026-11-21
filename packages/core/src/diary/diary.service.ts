@@ -38,17 +38,21 @@ export class DiaryService {
     private readonly shadowRepo: ShadowIndexRepository,
     private readonly fileSync: FileSyncService,
     private readonly shadowSync: ShadowIndexSyncService,
-    private readonly vaultIndex: VaultIndexService
+    private readonly vaultIndex: VaultIndexService,
+    private readonly graphRepo?: import('@baishou/database').GraphRepository
   ) {}
 
   async create(input: CreateDiaryInput): Promise<Diary> {
-    // 1. 检查物理文件是否存在：以文件系统为唯一真理
-    const existingShadow = await this.shadowRepo.findByDate(formatLocalDate(input.date))
-    const existingFile = existingShadow?.filePath
-      ? await this.fileSync.readJournal(input.date, existingShadow.filePath)
-      : await this.fileSync.readJournal(input.date)
-    if (existingFile) {
-      throw new DiaryDateConflictError(input.date)
+    const entryType = (input as any).entryType || 'daily_diary'
+    // 1. 检查物理文件是否存在：仅日常日记 daily_diary 强制一日常一档检查冲突，随笔与小说档案按独立篇目创建
+    if (entryType === 'daily_diary') {
+      const existingShadow = await this.shadowRepo.findByDate(formatLocalDate(input.date))
+      const existingFile = existingShadow?.filePath
+        ? await this.fileSync.readJournal(input.date, existingShadow.filePath)
+        : await this.fileSync.readJournal(input.date)
+      if (existingFile) {
+        throw new DiaryDateConflictError(input.date)
+      }
     }
 
     // 2. 补全必要的主键和时间戳（对标原版：targetId = id ?? DateTime.now().millisecondsSinceEpoch）
@@ -145,7 +149,13 @@ export class DiaryService {
 
     // 检查日期跳转时的覆盖合并
     let conflictId: number | undefined
-    if (inputDate && isDateJumped) {
+    const isSpecialEntry =
+      existingDiary.entryType === 'banxia_essay' ||
+      existingDiary.entryType === 'novel_archive' ||
+      input.entryType === 'banxia_essay' ||
+      input.entryType === 'novel_archive'
+
+    if (inputDate && isDateJumped && !isSpecialEntry) {
       const conflictShadow = await this.shadowRepo.findByDate(inputDateStr)
       const conflict = conflictShadow?.filePath
         ? await this.fileSync.readJournal(inputDate, conflictShadow.filePath)
@@ -185,6 +195,25 @@ export class DiaryService {
     mergedDiaryToSave.content = persisted.content
     mergedDiaryToSave.tags = persisted.tags
     await this.fileSync.writeJournal(mergedDiaryToSave, existingShadow.filePath)
+
+    // 更新时先清理此文档在图谱中的旧边与孤立节点，防止产生重复幽灵边
+    const sourceRef = existingDateStr || existingShadow.filePath
+    if (this.graphRepo?.deleteEdgesAndPruneOrphanNodesBySourceRef) {
+      try {
+        await this.graphRepo.deleteEdgesAndPruneOrphanNodesBySourceRef(
+          this.shadowRepo.vaultId,
+          sourceRef
+        )
+        if (existingShadow.filePath && existingShadow.filePath !== sourceRef) {
+          await this.graphRepo.deleteEdgesAndPruneOrphanNodesBySourceRef(
+            this.shadowRepo.vaultId,
+            existingShadow.filePath
+          )
+        }
+      } catch (e) {
+        console.warn('[DiaryService] 更新前清理图谱旧边失败 (非阻塞):', e)
+      }
+    }
 
     // 呼唤影子同步引擎进行更新重算和提取
     // 如果修改了日期，那么目标文件名也变了，要对新的日期发出同步令，对旧日期由于删除了它会自动触发孤立清除
@@ -230,6 +259,12 @@ export class DiaryService {
       return this.update(id, input)
     }
 
+    const entryType = (input as any).entryType || 'daily_diary'
+    // 随笔（banxia_essay）和小说档案（novel_archive）彻底绕开按日合并逻辑，按独立篇目创建
+    if (entryType !== 'daily_diary') {
+      return this.create(input)
+    }
+
     // 新建模式，提取日期
     const inputDate = input.date
       ? input.date instanceof Date
@@ -237,25 +272,30 @@ export class DiaryService {
         : parseDateStr(String(input.date).split('T')[0]!)
       : new Date()
 
-    // 检查此日期是否已经存在日记文件
-    const existingShadow = await this.shadowRepo.findByDate(formatLocalDate(inputDate))
-    const existingDiary = existingShadow?.filePath
-      ? await this.fileSync.readJournal(inputDate, existingShadow.filePath)
-      : await this.fileSync.readJournal(inputDate)
-    if (existingDiary) {
-      // 若已存在，则合并内容并做更新
-      mergeDiariesOnDateJump(input, existingDiary)
-      const resolvedId = await this.resolveDiaryIdForDate(inputDate, existingDiary.id)
-      if (!resolvedId) {
-        throw new DiaryNotFoundError(existingDiary.id ?? 0)
+    // 检查此日期是否已经存在日记文件（随笔与小说档案独立建档，彻底绕开按日合并）
+    const isSpecialEntry =
+      input.entryType === 'banxia_essay' || input.entryType === 'novel_archive'
+
+    if (!isSpecialEntry) {
+      const existingShadow = await this.shadowRepo.findByDate(formatLocalDate(inputDate))
+      const existingDiary = existingShadow?.filePath
+        ? await this.fileSync.readJournal(inputDate, existingShadow.filePath)
+        : await this.fileSync.readJournal(inputDate)
+      if (existingDiary) {
+        // 若已存在，则合并内容并做更新
+        mergeDiariesOnDateJump(input, existingDiary)
+        const resolvedId = await this.resolveDiaryIdForDate(inputDate, existingDiary.id)
+        if (!resolvedId) {
+          throw new DiaryNotFoundError(existingDiary.id ?? 0)
+        }
+        return this.update(resolvedId, {
+          ...input,
+          date: inputDate
+        })
       }
-      return this.update(resolvedId, {
-        ...input,
-        date: inputDate
-      })
     }
 
-    // 若无冲突，则创建新日记
+    // 若无冲突（或随笔/小说档案），则创建新记录
     return this.create({
       ...input,
       date: inputDate
@@ -271,6 +311,25 @@ export class DiaryService {
         await this.fileSync.deleteJournalFile(existingDate, existingShadow.filePath)
       } else {
         await this.fileSync.deleteJournalFile(existingDate)
+      }
+
+      // 级联清理知识图谱边与孤立节点
+      const sourceRef = existingDateStr || existingShadow.filePath
+      if (this.graphRepo?.deleteEdgesAndPruneOrphanNodesBySourceRef) {
+        try {
+          await this.graphRepo.deleteEdgesAndPruneOrphanNodesBySourceRef(
+            this.shadowRepo.vaultId,
+            sourceRef
+          )
+          if (existingShadow.filePath && existingShadow.filePath !== sourceRef) {
+            await this.graphRepo.deleteEdgesAndPruneOrphanNodesBySourceRef(
+              this.shadowRepo.vaultId,
+              existingShadow.filePath
+            )
+          }
+        } catch (e) {
+          console.warn('[DiaryService] 级联清理图谱边失败 (非阻塞):', e)
+        }
       }
 
       // 触发脏检测将会使其判定为孤立索引并级联删除向量、重置一切缓存

@@ -10,6 +10,7 @@ import {
 } from '@baishou/shared'
 import { TTSProviderSettings } from '@baishou/ui'
 import type { TtsProviderConfig } from '@baishou/ui'
+import { GptSovitsSettingsSection } from './GptSovitsSettingsSection'
 
 export const TTSSettingsPane: React.FC = () => {
   const globalModels = useSettingsStore((state) => state.globalModels)
@@ -113,7 +114,11 @@ export const TTSSettingsPane: React.FC = () => {
   }, [])
 
   return (
-    <div className="settings-pane settings-pane-full">
+    <div className="settings-pane settings-pane-full" style={{ overflowY: 'auto' }}>
+      <GptSovitsSettingsSection />
+      <div style={{ padding: '16px 20px 4px', fontSize: '13px', fontWeight: 600, color: '#636E72' }}>
+        云端 / 通用 TTS 服务商配置（备用）
+      </div>
       <TTSProviderSettings
         initialConfig={initialConfig}
         initialProviderStates={initialProviderStates}

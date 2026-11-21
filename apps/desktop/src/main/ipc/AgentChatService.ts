@@ -165,10 +165,19 @@ export class AgentChatService {
       systemModels: params.systemModels
     })
 
+    let desktopContext: string | undefined
+    try {
+      const { DesktopPerceptionService } = await import('../services/desktop-perception.service')
+      desktopContext = await DesktopPerceptionService.getInstance().getDesktopContextPrompt()
+    } catch {
+      // desktop perception service not available or failed
+    }
+
     try {
       return await AgentChatCoreService.runStreamChat({
         ...streamHost,
         emitter,
+        desktopContext,
         sessionId: params.sessionId,
         userText: params.userText,
         userMessageId: params.userMessageId,

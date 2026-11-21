@@ -175,6 +175,10 @@ export function parseJournalMarkdown(raw: string, fallbackDate: string): ParsedJ
     location: meta['location'] || undefined,
     locationDetail: meta['location_detail'] || meta['locationDetail'] || undefined,
     isFavorite: meta['is_favorite'] === 'true' || meta['isFavorite'] === 'true',
-    mediaPaths
+    mediaPaths,
+    entryType: meta['entryType'] || meta['entry_type'] || undefined,
+    authorRole: meta['authorRole'] || meta['author_role'] || undefined,
+    title: meta['title'] || undefined,
+    slug: meta['slug'] || undefined
   }
 }

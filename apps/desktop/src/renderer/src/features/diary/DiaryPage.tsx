@@ -113,6 +113,19 @@ export const DiaryPage: React.FC = () => {
   const [attachmentBasePath, setAttachmentBasePath] = useState<string>('')
   const gridScrollRef = useRef<HTMLDivElement>(null)
   const [pendingGraphCount, setPendingGraphCount] = useState(0)
+
+  // 三抽屉状态（日常日记 / 半夏随笔 / 小说档案），持久化到 sessionStorage
+  const [activeTab, setActiveTab] = useState<'daily_diary' | 'banxia_essay' | 'novel_archive'>(
+    () => {
+      const saved = sessionStorage.getItem('diary_activeTab')
+      if (saved === 'banxia_essay' || saved === 'novel_archive') return saved
+      return 'daily_diary'
+    }
+  )
+
+  useEffect(() => {
+    sessionStorage.setItem('diary_activeTab', activeTab)
+  }, [activeTab])
   const [pendingEmbedCount, setPendingEmbedCount] = useState(0)
   const [pendingEmbedParts, setPendingEmbedParts] = useState<PendingEmbedCounts>(
     EMPTY_PENDING_EMBED_COUNTS
@@ -180,15 +193,25 @@ export const DiaryPage: React.FC = () => {
 
   const diaryQuery = useMemo(
     () => ({
+      selectedMonth: activeTab === 'daily_diary' ? selectedMonth : null,
+      searchQuery,
+      filterWeathers,
+      filterMoods,
+      filterFavorite,
+      entryType: activeTab,
+      page: currentPage,
+      pageSize
+    }),
+    [
+      activeTab,
       selectedMonth,
       searchQuery,
       filterWeathers,
       filterMoods,
       filterFavorite,
-      page: currentPage,
+      currentPage,
       pageSize
-    }),
-    [selectedMonth, searchQuery, filterWeathers, filterMoods, filterFavorite, currentPage, pageSize]
+    ]
   )
   const { entries, totalCount, loading, loadEntries, hasLoadedOnce } = useDiaryData(diaryQuery)
   const storageIndexing = useStorageIndexing()
@@ -268,7 +291,7 @@ export const DiaryPage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1)
     gridScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
-  }, [selectedMonth, searchQuery, filterWeathers, filterMoods, filterFavorite])
+  }, [activeTab, selectedMonth, searchQuery, filterWeathers, filterMoods, filterFavorite])
 
   useEffect(() => {
     gridScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
@@ -315,9 +338,16 @@ export const DiaryPage: React.FC = () => {
       .catch(() => {})
   }, [selectedMonth, hasLoadedOnce])
 
-  const goToEditor = (dateStr: string) => {
+  const goToEditor = (entry: DiaryEntry) => {
     sessionStorage.setItem('desktop_last_nav', '/diary')
-    navigate(`/diary/${dateStr}`)
+    if (entry.entryType && entry.entryType !== 'daily_diary') {
+      navigate(`/diary/${entry.id}?type=${entry.entryType}`)
+    } else {
+      const y = entry.date.getFullYear()
+      const m = String(entry.date.getMonth() + 1).padStart(2, '0')
+      const d = String(entry.date.getDate()).padStart(2, '0')
+      navigate(`/diary/${y}-${m}-${d}`)
+    }
   }
 
   const handleEditToday = () => {
@@ -331,7 +361,7 @@ export const DiaryPage: React.FC = () => {
     const today = new Date()
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     sessionStorage.setItem('desktop_last_nav', '/diary')
-    navigate(`/diary/new?date=${dateStr}`)
+    navigate(`/diary/new?date=${dateStr}&type=${activeTab}`)
   }
 
   const handleDeleteEntry = async (id: number) => {
@@ -378,7 +408,11 @@ export const DiaryPage: React.FC = () => {
           mood: e.mood,
           location: e.location,
           isFavorite: e.isFavorite,
-          hasMedia: e.hasMedia || false
+          hasMedia: e.hasMedia || false,
+          title: (e as any).title,
+          slug: (e as any).slug,
+          entryType: (e as any).entryType || 'daily_diary',
+          authorRole: (e as any).authorRole || 'user'
         }) as DiaryEntry
     )
   }, [entries])
@@ -414,6 +448,11 @@ export const DiaryPage: React.FC = () => {
         todayEntry={todayEntry}
         onEditToday={handleEditToday}
         onAddNew={handleAddNew}
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab)
+          setCurrentPage(1)
+        }}
       />
 
       <DiaryGrid

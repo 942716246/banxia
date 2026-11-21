@@ -40,9 +40,9 @@ export const vaultService = new VaultService(pathService, fileSystem)
 export function resolveActiveVault(): { id: string; name: string } {
   const vault = vaultService.getActiveVault()
   if (vault?.id) {
-    return { id: vault.id, name: vault.name || 'Personal' }
+    return { id: vault.id, name: vault.name || '半夏' }
   }
-  const name = vault?.name?.trim() || 'Personal'
+  const name = vault?.name?.trim() || '半夏'
   return { id: deriveLegacyVaultId(name), name }
 }
 
@@ -54,7 +54,7 @@ export function resolveActiveVaultId(): string {
 /** 按显示名解析 vault id；能拿到 registry 时用真实 id，禁止盲目 derive */
 export function resolveVaultIdByName(vaultName: string): string {
   const trimmed = vaultName.trim()
-  if (!trimmed) return deriveLegacyVaultId('Personal')
+  if (!trimmed) return deriveLegacyVaultId('半夏')
   const fromRegistry = vaultService.getAllVaults().find((v) => v.name === trimmed)
   if (fromRegistry?.id) return fromRegistry.id
   return deriveLegacyVaultId(trimmed)
@@ -63,7 +63,7 @@ export function resolveVaultIdByName(vaultName: string): string {
 /** 将 vault id 还原为显示名（prompt / 路径 / UI） */
 export function resolveVaultNameById(vaultId: string): string {
   const trimmed = vaultId.trim()
-  if (!trimmed) return 'Personal'
+  if (!trimmed) return '半夏'
   return vaultService.getAllVaults().find((v) => v.id === trimmed)?.name ?? trimmed
 }
 

@@ -210,7 +210,34 @@ export class GraphLlmExtractionService {
     const hash = actualHash || opts.contentHash || ''
     const diaryInstant = graphDiaryInstant(opts.filePath)
     const dateStr = diaryInstant.dateStr
-    const prompt = buildExtractPrompt(raw, dateStr, selfName)
+
+    const normPath = opts.filePath.replace(/\\/g, '/')
+    const isNovel = normPath.startsWith('Novels/') || raw.includes('entry_type: novel_archive')
+    const isEssay = normPath.startsWith('Essays/') || raw.includes('entry_type: banxia_essay') || raw.includes("author_role: 'assistant'")
+
+    // 小说档案跳过现实图谱抽取（防止虚构人物污染半夏与魂小小的现实人际图谱）
+    if (isNovel) {
+      opts.onProgress?.({ phase: 'parsing', progress: graphExtractPhaseProgress('parsing') })
+      return {
+        vaultId: opts.vaultId,
+        vaultName: opts.vaultName,
+        filePath: normalizeFilePath(opts.filePath),
+        contentHash: opts.contentHash || hash,
+        hash,
+        dateStr: dateStr ?? '未知',
+        shardMonth: diaryInstant.shardMonth,
+        validFrom: diaryInstant.validFrom ?? Date.now(),
+        entities: [],
+        edges: [],
+        sourceContext: ''
+      }
+    }
+
+    const prompt = buildExtractPrompt(raw, dateStr, selfName, {
+      authorRole: isEssay ? 'assistant' : 'user',
+      entryType: isEssay ? 'banxia_essay' : 'daily_diary',
+      assistantName: '半夏'
+    })
     const text = await this.llm({
       ...prompt,
       signal: opts.signal

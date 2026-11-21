@@ -67,6 +67,8 @@ export interface AgentToolsContextParams {
   agentGate?: IBaishouAgentGate
   gateProfile?: AgentGateProfileId
   resolveVaultDisplayName?: (vaultId: string) => string | null | undefined
+  /** 桌面活动窗口感知上下文，用于半夏桌宠模式下的环境感知 */
+  desktopContext?: string
   workspace?: {
     folderRoot?: string
     sessionKind?: AgentSessionKind
@@ -261,6 +263,7 @@ export async function buildSystemPromptForSession(
     knowledgeMount: {
       notebookIds: params.workspace?.notebookIds ?? []
     },
+    desktopContext: params.desktopContext,
     skillsCatalog: params.skillsCatalog,
     skillsInstruction
   })

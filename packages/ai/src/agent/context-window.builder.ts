@@ -20,6 +20,14 @@ export interface ContextWindowConfig {
    * 本次请求必须出现在窗口内的用户消息 id（如已落库但 recentCount 截断会误删时强制保留）。
    */
   requiredMessageId?: string
+  /** 自动记忆预召回配置 (Auto-Recall，零延迟预召回) */
+  autoRecall?: {
+    enabled: boolean
+    vaultId: string
+    vectorStore?: import('../tools/agent.tool').ToolVectorStore
+    embeddingService?: import('../tools/agent.tool').ToolEmbeddingService
+    minScore?: number
+  }
 }
 
 type CompressionSnapshot = Awaited<ReturnType<SnapshotRepository['getLatestSnapshot']>>
@@ -164,10 +172,71 @@ export class ContextWindowBuilder {
       )
     }
 
-    const finalMessages =
+    let finalMessages =
       snapshot && startIndex > 0
         ? [effectiveMessages[0]!, ...effectiveMessages.slice(startIndex)]
         : effectiveMessages.slice(startIndex)
+
+    // ── 轻量级自动记忆预召回（Auto-Recall） ──
+    if (config.autoRecall?.enabled && config.autoRecall.vectorStore && config.autoRecall.embeddingService) {
+      const { vectorStore, embeddingService, vaultId, minScore = 0.5 } = config.autoRecall
+      const lastUserMsg = [...finalMessages].reverse().find((m) => m.role === 'user')
+      const lastUserText = lastUserMsg?.parts
+        ?.filter((p) => p.type === 'text')
+        ?.map((p) => (p.data as any)?.text)
+        ?.join(' ')
+        ?.trim()
+
+      if (lastUserText && lastUserText.length >= 2 && embeddingService.isConfigured) {
+        try {
+          const queryVec = await embeddingService.embedQuery(lastUserText)
+          if (queryVec) {
+            const hits = await vectorStore.searchSimilar(queryVec, 3, { vaultId })
+            const validHits = hits.filter((h) => 1.0 - h.distance >= minScore)
+            if (validHits.length > 0) {
+              const recallLines: string[] = [
+                '<recalled_memories>',
+                '【你（半夏）脑海中自动浮现的相关过往记忆线索与随笔（请自然化用，切勿生硬背诵）】：'
+              ]
+              const seenDocIds = new Set<string>()
+              for (const hit of validHits) {
+                recallLines.push(`- 记忆线索: ${hit.chunkText}`)
+                if (vectorStore.getSourceDocument && hit.sourceId && !seenDocIds.has(hit.sourceId)) {
+                  seenDocIds.add(hit.sourceId)
+                  const doc = await vectorStore.getSourceDocument(hit.sourceType, hit.sourceId, vaultId)
+                  if (doc?.rawContent) {
+                    const titleStr = doc.title ? `《${doc.title}》` : doc.date ? `（${doc.date}）` : ''
+                    recallLines.push(`  [溯源随笔原文 ${titleStr}]:\n  ${doc.rawContent.trim()}`)
+                  }
+                }
+              }
+              recallLines.push('</recalled_memories>')
+
+              const autoRecallMsg: MessageWithParts = {
+                id: 'auto_recall_' + Date.now(),
+                sessionId,
+                role: 'system',
+                orderIndex: -0.5,
+                createdAt: new Date(),
+                isSummary: false,
+                parts: [
+                  {
+                    id: 'p_auto_recall_' + Date.now(),
+                    messageId: 'auto_recall_' + Date.now(),
+                    sessionId,
+                    type: 'text',
+                    data: { text: recallLines.join('\n') }
+                  }
+                ]
+              }
+              finalMessages = [autoRecallMsg, ...finalMessages]
+            }
+          }
+        } catch (e) {
+          logger.warn('[ContextWindowBuilder] 自动预召回失败 (非阻塞): ' + (e instanceof Error ? e.message : String(e)))
+        }
+      }
+    }
 
     return trimLeadingOrphanToolMessages(finalMessages, Boolean(snapshot))
   }

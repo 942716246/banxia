@@ -213,8 +213,43 @@ type TtsSynthesizeSpeechResult =
   | { success: true; segmentCount: number }
   | { success: false; errorCode: string; error?: string; statusCode?: number }
 
+interface PetAPI {
+  getConfig(): Promise<any>
+  saveConfig(patch: any): Promise<any>
+  setIgnoreMouse(ignore: boolean): Promise<boolean>
+  setPosition(x: number, y: number): Promise<boolean>
+  moveBy(dx: number, dy: number): Promise<boolean>
+  setScale(scale: number): Promise<any>
+  show(): Promise<boolean>
+  hide(): Promise<boolean>
+  toggle(): Promise<boolean>
+  selectTachieDir(): Promise<string | null>
+  selectInferenceDir(): Promise<any>
+  openMainWindow(): Promise<boolean>
+  speak(rawText: string): Promise<boolean>
+  abortSpeech(): Promise<boolean>
+  captureScreen(): Promise<{ dataUrl: string; name: string } | null>
+  chat(args: { text: string; attachments?: any[]; sessionId?: string }): Promise<boolean>
+  getWindowPerception(): Promise<boolean>
+  setWindowPerception(enabled: boolean): Promise<boolean>
+  onSpeak(callback: (rawText: string) => void): () => void
+  onAbortSpeech(callback: () => void): () => void
+  onTachieDirChanged(callback: (dir: string) => void): () => void
+  onScaleChanged(callback: (scale: number) => void): () => void
+}
+
 interface TtsAPI {
-  synthesize(text: string, providerId?: string, modelId?: string): Promise<unknown>
+  synthesize(options: any, providerId?: string, modelId?: string): Promise<any>
+  getConfig?(): Promise<any>
+  updateConfig?(patch: any): Promise<any>
+  scanInferenceDir?(dirPath?: string): Promise<any>
+  setGptWeights?(weightsPath: string): Promise<any>
+  setSovitsWeights?(weightsPath: string): Promise<any>
+  checkHealth?(): Promise<any>
+  getMoodMap?(): Promise<any>
+  setMoodEntry?(mood: string, entry: any): Promise<any>
+  selectInferenceDir?(): Promise<any>
+  selectRefAudio?(): Promise<any>
   synthesizeSpeech(
     content: string,
     options?: {
@@ -266,6 +301,7 @@ interface AppAPI {
   vault: VaultAPI
   storage: StorageAPI
   tts: TtsAPI
+  pet: PetAPI
   pickFiles(options?: PickFilesOptions): Promise<PickedFile[]>
   getMountedNotebooks(sessionId: string): Promise<string[]>
   setMountedNotebooks(sessionId: string, notebookIds: string[]): Promise<string[]>

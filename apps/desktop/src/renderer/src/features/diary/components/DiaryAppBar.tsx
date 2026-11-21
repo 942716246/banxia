@@ -30,6 +30,8 @@ interface DiaryAppBarProps {
   todayEntry: { id: number } | null
   onEditToday: () => void
   onAddNew: () => void
+  activeTab?: 'daily_diary' | 'banxia_essay' | 'novel_archive'
+  onTabChange?: (tab: 'daily_diary' | 'banxia_essay' | 'novel_archive') => void
 }
 
 /** 日记页面顶部工具栏：包含月份选择、天气/收藏筛选面板、搜索框与操作按钮 */
@@ -46,7 +48,9 @@ export const DiaryAppBar: React.FC<DiaryAppBarProps> = ({
   onFilterFavoriteChange,
   todayEntry,
   onEditToday,
-  onAddNew
+  onAddNew,
+  activeTab = 'daily_diary',
+  onTabChange
 }) => {
   const { t } = useTranslation()
   const location = useLocation()
@@ -96,13 +100,92 @@ export const DiaryAppBar: React.FC<DiaryAppBarProps> = ({
   return (
     <div className="diary-appbar">
       <div className="diary-appbar-left">
-        <div className="diary-month-selector">
-          <YearMonthPicker
-            selectedMonth={selectedMonth}
-            onChange={onMonthChange}
-            titlePlaceholder={t('diary.all_diaries', '全部日记')}
-          />
+        {/* 三抽屉切换标签页 */}
+        <div
+          className="diary-tab-switcher"
+          style={{
+            display: 'flex',
+            gap: '4px',
+            background: 'rgba(0,0,0,0.04)',
+            padding: '3px',
+            borderRadius: '8px'
+          }}
+        >
+          <button
+            type="button"
+            className={`diary-tab-btn ${activeTab === 'daily_diary' ? 'active' : ''}`}
+            onClick={() => onTabChange?.('daily_diary')}
+            style={{
+              border: 'none',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: activeTab === 'daily_diary' ? 600 : 400,
+              background: activeTab === 'daily_diary' ? 'var(--bg-primary, #fff)' : 'transparent',
+              boxShadow: activeTab === 'daily_diary' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color:
+                activeTab === 'daily_diary'
+                  ? 'var(--text-primary, #333)'
+                  : 'var(--text-secondary, #666)',
+              cursor: 'pointer'
+            }}
+          >
+            📖 日常日记
+          </button>
+          <button
+            type="button"
+            className={`diary-tab-btn ${activeTab === 'banxia_essay' ? 'active' : ''}`}
+            onClick={() => onTabChange?.('banxia_essay')}
+            style={{
+              border: 'none',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: activeTab === 'banxia_essay' ? 600 : 400,
+              background: activeTab === 'banxia_essay' ? 'var(--bg-primary, #fff)' : 'transparent',
+              boxShadow: activeTab === 'banxia_essay' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color:
+                activeTab === 'banxia_essay'
+                  ? 'var(--text-primary, #333)'
+                  : 'var(--text-secondary, #666)',
+              cursor: 'pointer'
+            }}
+          >
+            🎨 半夏随笔
+          </button>
+          <button
+            type="button"
+            className={`diary-tab-btn ${activeTab === 'novel_archive' ? 'active' : ''}`}
+            onClick={() => onTabChange?.('novel_archive')}
+            style={{
+              border: 'none',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: activeTab === 'novel_archive' ? 600 : 400,
+              background:
+                activeTab === 'novel_archive' ? 'var(--bg-primary, #fff)' : 'transparent',
+              boxShadow: activeTab === 'novel_archive' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              color:
+                activeTab === 'novel_archive'
+                  ? 'var(--text-primary, #333)'
+                  : 'var(--text-secondary, #666)',
+              cursor: 'pointer'
+            }}
+          >
+            📜 小说档案
+          </button>
         </div>
+
+        {activeTab === 'daily_diary' && (
+          <div className="diary-month-selector">
+            <YearMonthPicker
+              selectedMonth={selectedMonth}
+              onChange={onMonthChange}
+              titlePlaceholder={t('diary.all_diaries', '全部日记')}
+            />
+          </div>
+        )}
 
         {/* 筛选按钮 */}
         <div className="diary-filter-wrapper" ref={filterRef}>
@@ -241,21 +324,27 @@ export const DiaryAppBar: React.FC<DiaryAppBarProps> = ({
           />
         </div>
 
-        <button
-          className="diary-today-btn"
-          onClick={onEditToday}
-          title={
-            todayEntry
-              ? t('settings.edit_today_tooltip', '编辑今日记录')
-              : t('settings.write_today_tooltip', '记录今天')
-          }
-        >
-          {todayEntry ? <Edit3 size={20} /> : <CalendarCheck size={20} />}
-        </button>
+        {activeTab === 'daily_diary' && (
+          <button
+            className="diary-today-btn"
+            onClick={onEditToday}
+            title={
+              todayEntry
+                ? t('settings.edit_today_tooltip', '编辑今日记录')
+                : t('settings.write_today_tooltip', '记录今天')
+            }
+          >
+            {todayEntry ? <Edit3 size={20} /> : <CalendarCheck size={20} />}
+          </button>
+        )}
 
         <button className="diary-add-btn" onClick={onAddNew}>
           <Plus size={18} />
-          {t('settings.write_diary_button', '写日记')}
+          {activeTab === 'banxia_essay'
+            ? '写随笔'
+            : activeTab === 'novel_archive'
+              ? '存档案'
+              : t('settings.write_diary_button', '写日记')}
         </button>
       </div>
     </div>

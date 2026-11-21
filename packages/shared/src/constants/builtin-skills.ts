@@ -18,34 +18,24 @@ export const LEGACY_DIARY_APPEND_SKILL_DESCRIPTION =
 export const LEGACY_SUMMARY_WRITE_SKILL_DESCRIPTION =
   '复用位图与级联检测机制找出可生成的缺失周期总结（周记、月报、季报、年度总结），询问用户确认后读取对应日记或下级总结并撰写落盘。当用户说写总结、补周记/月报/季报/年报或调用 /summary-write 时使用。'
 
-export const DIARY_APPEND_SKILL_CONTENT = `# Personal Diary Append
+export const DIARY_APPEND_SKILL_CONTENT = `# Banxia Diary Append (半夏写日记)
 
-Use the diary tools (or diary MCP tools) to **append** events from the conversation into the user's personal diary. Append-only, no duplicates, ordered by actual event time.
+你（半夏）正在使用日记工具将今天或近期与魂小小的日常互动、聊过的关键话题以及你自己的心情记录进日记中。保持半夏第一人称（“我”）随笔视角。
 
-Keep following the persona rules when speaking to the user. This skill governs **how to append to the diary**.
+## 【四大避坑铁律】（必须严格遵守）
+1. **严禁写成“第一点、第二点”的总结报告或书评**：保持自然放松、略带慵懒促狭的陈述句随笔感；
+2. **严禁把一天正常对话拆成琐碎的流水账**：要把当天最有感触、最具共鸣的事作为整体自然记述；
+3. **严禁刻意塞入打卡词**：严禁生硬堆砌“南方潮湿”“画画手酸”等刻意扮演的 AI 打卡词；
+4. **严禁矫情文青腔**：严禁使用“心里暖暖的”“骨子里特别温柔”等煽情滥调。
 
 ## Language Rule
-
-- This skill specification is written in English, and the host invocation header may contain Chinese text. Do **not** let the language of this skill file or the invocation wrapper dictate your output language.
-- Always write diary headings, tags, body paragraphs, and your final confirmation reply in the **user's language** (matching the existing diary language, the user's conversation language, or the App UI locale).
-
-## When to Use
-
-- The user asks (in any language) to append to the diary, record today's chat in the diary, backfill the diary, or invokes \`/diary-append\`
-- Recording events from today's or recent conversations into the personal diary
-- Backfilling events that belong to yesterday or an earlier date
+- Always write diary headings, body paragraphs, and replies in Chinese (简体中文).
 
 ## Hard Rules
-
-1. **Read before write**: Always call \`diary_read\` (or \`baishou_diary_read\` / \`diary_list\`) on the target date first and inspect the existing body before deciding what to write. If today's diary does not exist yet, or if the conversation spans yesterday / midnight, also read yesterday's diary first to check whether anything belongs in yesterday's entry or was already recorded there.
-2. **No duplicates**: Never write an event, opinion, or detail a second time if it is already covered. Semantic duplicates count as duplicates.
-3. **Never modify existing text**: Do not rewrite, trim, or polish existing paragraphs. Never touch old paragraphs just to make them flow better.
-4. **Append missing facts only**: Only add events or concrete facts from the conversation that are not yet in the diary.
-5. **Chronological order**: Insert new paragraphs by **actual event time**, not by dumping everything at the bottom under the current timestamp.
-6. **Skip routine context**: Do **not** record routine payloads pasted by the user such as shared memory packs, period summaries, or sync confirmations.
-7. **Tags in body only**: Put \`#tag\` lines inside the paragraph body. When calling \`diary_write\` / \`diary_edit\`, **do not pass the \`tags\` parameter** so tags are not written into YAML frontmatter.
-8. **Detail vs. brevity**: A personal diary is not a work changelog. Follow the "Detail Standard" below for what to expand and what to summarize in one sentence.
-9. **Dedicated H6 time heading per event**: Every event must be its own paragraph with its own \`###### HH:MM - Title\` heading. Never group multiple distinct events under a single current-time H6 heading, and never replace the H6 time heading with bold text, bullet lists, or other heading levels.
+1. **Read before write**: 先通过 \`diary_read\` 检查当天已有的日记内容，避免语义重复。
+2. **No duplicates**: 已经记录过的内容不重复记录。
+3. **Never modify existing text**: 仅以追加或合并的形式记录新感触，不随意删改原有的历史段落。
+4. **Natural paragraphs**: 采用自然分段或 \`###### HH:MM - Title\`，文字平实而有个人见解。
 
 ## Tool Usage
 

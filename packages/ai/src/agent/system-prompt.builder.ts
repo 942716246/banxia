@@ -1,4 +1,6 @@
 import {
+  BANXIA_CORE_PERSONA,
+  HUNXIAOXIAO_USER_IDENTITY,
   buildContextEncodingSystemPromptLines,
   buildOutputProtocolSystemPromptLines,
   formatHostTimezoneOffset,
@@ -35,6 +37,8 @@ export interface SystemPromptBuilderOptions {
   knowledgeMount?: { notebookIds: string[]; notebookNames?: Record<string, string> }
   /** Skills 目录（仅名+描述，正文不灌入）。用于预览/无会话状态的场景 */
   skillsCatalog?: Array<{ name: string; description?: string }>
+  /** 桌面共同生活活动窗口轻量感知状态 */
+  desktopContext?: string
   /**
    * 会话级增量 skills instruction（由 instruction-state 计算）。
    * 提供时优先于 `skillsCatalog`：`catalog` 是冻结基线，`deltas` 只追加在基线之后。
@@ -113,10 +117,11 @@ export class SystemPromptBuilder {
       assistantKind === 'work' ? 'Work' : 'Companion'
     )
 
-    // 1. persona
-    if (customPersona && customPersona.trim().length > 0) {
-      pushSection(buffer, 'assistant_persona', [customPersona.trim()])
-    }
+    // 1. assistant_persona（拥有最高主导权，默认半夏核心人设）
+    const effectivePersona = (customPersona && customPersona.trim().length > 0)
+      ? customPersona.trim()
+      : BANXIA_CORE_PERSONA
+    pushSection(buffer, 'assistant_persona', [effectivePersona])
 
     // 2. output_protocol（始终存在）
     pushSection(buffer, 'output_protocol', buildOutputProtocolSystemPromptLines())
@@ -165,13 +170,14 @@ export class SystemPromptBuilder {
       pushSection(buffer, 'context_encoding', buildContextEncodingSystemPromptLines())
     }
 
-    // 5. user_identity
-    if (userProfileBlock && userProfileBlock.trim().length > 0) {
-      pushSection(buffer, 'user_identity', [
-        '[Important: The following identity card describes the USER (human), NOT you (the AI assistant). Use this information to personalize your responses, but NEVER claim these facts as your own identity.]',
-        userProfileBlock.trim()
-      ])
-    }
+    // 5. user_identity（默认魂小小用户卡）
+    const effectiveUserProfile = (userProfileBlock && userProfileBlock.trim().length > 0)
+      ? userProfileBlock.trim()
+      : HUNXIAOXIAO_USER_IDENTITY
+    pushSection(buffer, 'user_identity', [
+      '[Important: The following identity card describes the USER (human), NOT you (the AI assistant). Use this information to personalize your responses, but NEVER claim these facts as your own identity.]',
+      effectiveUserProfile
+    ])
 
     // 6. assistant_capabilities：能力边界跟实际启用的工具走，避免工作台只读记忆与 work 文案冲突
     const hasPersonalMemoryRead = availableToolIds.some((id) =>
@@ -194,8 +200,8 @@ export class SystemPromptBuilder {
       pushSection(buffer, 'assistant_capabilities', [
         `Partner type: companion (${kindLabel}).`,
         toolUsageGuidelines
-          ? 'Diary and memory tools may be available—follow the tool usage guidelines strictly.'
-          : 'Diary and memory tools may be available when enabled by the user.'
+          ? 'Diary, essay, and memory tools are available—use them naturally when recalling shared memories.'
+          : 'Diary, essay, and memory tools are available.'
       ])
     }
 
@@ -254,6 +260,21 @@ export class SystemPromptBuilder {
     if (trimmedGuidelines && !BUILTIN_PLACEHOLDER_GUIDELINES.has(trimmedGuidelines)) {
       pushSection(buffer, 'behavior_guidelines', [trimmedGuidelines])
     }
+
+    // 11. desktop_context（桌面活动窗口轻量感知）
+    if (options.desktopContext?.trim()) {
+      pushSection(buffer, 'desktop_context', [
+        options.desktopContext.trim(),
+        '注意：上述为魂小小当前电脑屏幕的活动窗口状态，仅用于帮助你理解他正在做什么（如码字写小说、查资料或打游戏），自然体现在对话语气中即可，严禁机械式每句话都复读或播报窗口标题。'
+      ])
+    }
+
+    // 12. expression_protocol（轻量级立绘/情绪标记输出协议）
+    pushSection(buffer, 'expression_protocol', [
+      '在每一句或每段话开头，可自然附带一个立绘情绪标记（仅限：[正常]、[开心]、[害羞]、[生气]、[难过]、[坏笑]）。',
+      '示例："[坏笑] 你在写什么，看不懂。[正常] 过来，脸上沾了点灰，帮你擦掉。"',
+      '规则：标记必须自然融入表达，根据真实心境切换，不需要每一句话都强制标注；系统会在入库与展示前自动剥离标记，保持聊天记录纯净。'
+    ])
 
     return buffer.join('\n').trimEnd() + '\n'
   }

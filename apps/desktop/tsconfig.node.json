@@ -14,6 +14,8 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
+      "@baishou/core": ["../../packages/core/src/index.ts"],
+      "@baishou/core/*": ["../../packages/core/src/*"],
       "@baishou/core/shared": ["../../packages/core/src/index.shared.ts"]
     }
   }

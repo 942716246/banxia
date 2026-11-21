@@ -24,6 +24,14 @@ export class ShadowIndexListOps {
       conditions.push(eq(shadowJournalIndexTable.isFavorite, true))
     }
 
+    if (options.entryType) {
+      conditions.push(eq(shadowJournalIndexTable.entryType, options.entryType))
+    }
+
+    if (options.authorRole) {
+      conditions.push(eq(shadowJournalIndexTable.authorRole, options.authorRole))
+    }
+
     if (options.weathers && options.weathers.length > 0) {
       const expanded = expandWeatherFilterValues(options.weathers)
       conditions.push(inArray(shadowJournalIndexTable.weather, expanded))
@@ -62,6 +70,10 @@ export class ShadowIndexListOps {
         locationDetail: shadowJournalIndexTable.locationDetail,
         isFavorite: shadowJournalIndexTable.isFavorite,
         hasMedia: shadowJournalIndexTable.hasMedia,
+        entryType: shadowJournalIndexTable.entryType,
+        authorRole: shadowJournalIndexTable.authorRole,
+        title: shadowJournalIndexTable.title,
+        slug: shadowJournalIndexTable.slug,
         tags: shadowJournalIndexTable.tags,
         tagColors: shadowJournalIndexTable.tagColors,
         rawContent: sql<string | null>`substr(${shadowJournalIndexTable.rawContent}, 1, 500)`.as(

@@ -65,6 +65,7 @@ export class AgentChatCoreService {
     resolveVaultDisplayName?: (vaultId: string) => string | null | undefined
     skillsCatalog?: import('./agent-session.types').StreamChatOptions['skillsCatalog']
     extraVercelToolsFactory?: import('./agent-session.types').StreamChatOptions['extraVercelToolsFactory']
+    desktopContext?: string
     maxSteps?: number
     sessionRuntimeV2?: boolean
   }): Promise<{ aborted: boolean }> {
@@ -113,6 +114,7 @@ export class AgentChatCoreService {
           resolveVaultDisplayName: params.resolveVaultDisplayName,
           skillsCatalog: params.skillsCatalog,
           extraVercelToolsFactory: params.extraVercelToolsFactory,
+          desktopContext: params.desktopContext,
           maxSteps: params.maxSteps,
           sessionRuntimeV2: params.sessionRuntimeV2,
           abortSignal: claim.signal,

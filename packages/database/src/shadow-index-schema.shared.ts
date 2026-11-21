@@ -35,6 +35,10 @@ export const JOURNALS_INDEX_CREATE_SQL = `
     location_detail TEXT,
     is_favorite     INTEGER NOT NULL DEFAULT 0,
     has_media       INTEGER NOT NULL DEFAULT 0,
+    entry_type      TEXT    NOT NULL DEFAULT 'daily_diary',
+    author_role     TEXT    NOT NULL DEFAULT 'user',
+    title           TEXT,
+    slug            TEXT,
     raw_content     TEXT,
     tags            TEXT,
     tag_colors      TEXT
@@ -225,6 +229,26 @@ async function ensureFileStatColumns(client: unknown, logPrefix: string): Promis
   }
 }
 
+async function ensureBanxiaColumns(client: unknown, logPrefix: string): Promise<void> {
+  if (!(await tableExists(client, 'journals_index'))) return
+  if (!(await tableHasColumn(client, 'journals_index', 'entry_type'))) {
+    logger.info(`${logPrefix} journals_index 添加 entry_type 列（文档类型分流）`)
+    await executeRawSql(client, "ALTER TABLE journals_index ADD COLUMN entry_type TEXT NOT NULL DEFAULT 'daily_diary'")
+  }
+  if (!(await tableHasColumn(client, 'journals_index', 'author_role'))) {
+    logger.info(`${logPrefix} journals_index 添加 author_role 列（作者角色归属）`)
+    await executeRawSql(client, "ALTER TABLE journals_index ADD COLUMN author_role TEXT NOT NULL DEFAULT 'user'")
+  }
+  if (!(await tableHasColumn(client, 'journals_index', 'title'))) {
+    logger.info(`${logPrefix} journals_index 添加 title 列（标题）`)
+    await executeRawSql(client, 'ALTER TABLE journals_index ADD COLUMN title TEXT')
+  }
+  if (!(await tableHasColumn(client, 'journals_index', 'slug'))) {
+    logger.info(`${logPrefix} journals_index 添加 slug 列（文件标识）`)
+    await executeRawSql(client, 'ALTER TABLE journals_index ADD COLUMN slug TEXT')
+  }
+}
+
 /**
  * 桌面 / 移动端共用的影子索引建表与迁移入口。
  */
@@ -240,6 +264,7 @@ export async function ensureShadowIndexSchema(
   await executeRawSql(client, JOURNALS_INDEX_VAULT_FILE_PATH_UNIQUE_SQL)
   await ensureTagColorsColumn(client, logPrefix)
   await ensureFileStatColumns(client, logPrefix)
+  await ensureBanxiaColumns(client, logPrefix)
   await createJournalsFts(client, logPrefix)
 
   await executeRawSql(client, `PRAGMA user_version = ${SHADOW_INDEX_SCHEMA_VERSION}`)

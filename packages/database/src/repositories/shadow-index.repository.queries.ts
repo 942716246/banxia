@@ -163,6 +163,16 @@ export class ShadowIndexQueryOps {
     return (rows[0] as ShadowJournalRow) ?? null
   }
 
+  async findByFilePath(filePath: string): Promise<ShadowJournalRow | null> {
+    const normalized = filePath.replace(/\\/g, '/')
+    const rows = await this.ctx.database
+      .select()
+      .from(shadowJournalIndexTable)
+      .where(this.ctx.withVault(eq(shadowJournalIndexTable.filePath, normalized)))
+      .limit(1)
+    return (rows[0] as ShadowJournalRow) ?? null
+  }
+
   async findByDate(dateIso: string): Promise<ShadowJournalRow | null> {
     const rows = await this.ctx.database
       .select()

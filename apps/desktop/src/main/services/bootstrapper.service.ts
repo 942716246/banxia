@@ -145,6 +145,21 @@ export class GlobalDataBootstrapper {
     try {
       await this.activateVaultRuntime()
 
+      // 0. 半夏预置随笔与小说档案幂等写入
+      const activeVaultForSeed = vaultService.getActiveVault()
+      if (activeVaultForSeed) {
+        try {
+          const { BanXiaSeedService } = await import('@baishou/core-desktop')
+          const { getActiveVaultShadowRepo } = await import('../ipc/vault.ipc')
+          const vaultDir = await pathService.getVaultDirectory(activeVaultForSeed.name)
+          const shadowRepo = getActiveVaultShadowRepo()
+          const seedService = new BanXiaSeedService(fileSystem, shadowRepo)
+          await seedService.seedPresets(vaultDir)
+        } catch (seedErr) {
+          logger.warn('[Bootstrapper] 半夏预置数据初始化失败 (非阻塞):', { error: seedErr })
+        }
+      }
+
       const shadowScout = this.tryGetShadowBootstrapper()
       const summaryScout = this.tryGetSummaryBootstrapper()
       const { sessionManager, assistantManager } = getAgentManagers()

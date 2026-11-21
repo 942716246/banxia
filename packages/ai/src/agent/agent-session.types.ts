@@ -30,6 +30,8 @@ export interface StreamChatOptions {
   sessionRepo: SessionRepository
   snapshotRepo: SnapshotRepository
   systemPrompt?: string
+  /** 桌面活动窗口感知上下文，用于半夏桌宠模式下的环境感知 */
+  desktopContext?: string
   userConfig?: Record<string, unknown>
   attachments?: AttachmentInput[]
   contextSnapshots?: { title?: string; content: string }[]

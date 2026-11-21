@@ -64,6 +64,16 @@ export interface VectorSourceLookup {
   createdAt?: number | null
 }
 
+export interface SourceOriginDocument {
+  sourceId: string
+  rawContent: string
+  title?: string | null
+  entryType?: string | null
+  authorRole?: string | null
+  date?: string | null
+  filePath?: string | null
+}
+
 export interface ToolVectorStore {
   searchSimilar(
     queryEmbedding: number[],
@@ -77,6 +87,12 @@ export interface ToolVectorStore {
     sourceId: string,
     vaultId?: string
   ): Promise<VectorSourceLookup | null>
+  /** 溯源反查：根据 sourceId 直接查出原始随笔/日记的完整正文与元数据 */
+  getSourceDocument?(
+    sourceType: string,
+    sourceId: string,
+    vaultId?: string
+  ): Promise<SourceOriginDocument | null>
   /**
    * 将一个指定的日记文件从向量库中抹去
    */

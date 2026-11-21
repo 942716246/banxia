@@ -1,3 +1,5 @@
+import { stripSpeechTags } from '../tts/speech-segment.parser'
+
 const BRACKET_TIME_PREFIX = /^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\]\s*/
 const BRACKET_TIME_GLOBAL = /\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}\]\s*/g
 /** 闭合或未闭合：模型常只吐出 <message-time>YYYY-MM-DD HH:mm 后直接接正文 */
@@ -116,19 +118,12 @@ export function sanitizeAssistantGeneratedText(text: string): string {
     }
   }
 
-  return stripOrphanMetadataTags(rest).trim()
+  return stripSpeechTags(stripOrphanMetadataTags(rest)).trim()
 }
 
-/** 聊天 UI 展示用：若正文误含 message 元数据标签则脱壳（不落库逻辑） */
+/** 聊天 UI 展示用：若正文误含 message 元数据标签或情绪标签则脱壳（不落库逻辑） */
 export function unwrapMessageMetadataForDisplay(text: string): string {
   const raw = text ?? ''
-  if (
-    !raw.includes('<message-content>') &&
-    !raw.includes('<message-time>') &&
-    !raw.includes('<conversation_time>')
-  ) {
-    return raw
-  }
   return sanitizeAssistantGeneratedText(raw)
 }
 

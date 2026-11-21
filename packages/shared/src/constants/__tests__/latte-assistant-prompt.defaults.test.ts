@@ -58,19 +58,18 @@ describe('latte-assistant-prompt.defaults', () => {
   })
 
   it('recognizes the previous default prompt that mentioned the app name as factory', () => {
-    const current = getDefaultLatteAssistantSystemPrompt('zh')
+    const current = getDefaultLatteAssistantSystemPrompt('en')
     const previous = current
-      .replace('也是这个应用的看板娘', '也是白守的看板娘')
-      .replace('让每一次对话都更有温度', '让每一次对话都让白守更有温度')
+      .replace('also the mascot companion of this app', "also BaiShou's mascot companion")
+      .replace('making every conversation warmer.', 'making every conversation warmer for BaiShou.')
     expect(previous).not.toBe(current)
     expect(isFactoryLatteAssistantSystemPrompt(previous)).toBe(true)
-    expect(current).not.toContain('白守')
+    expect(current).not.toContain('BaiShou')
   })
 
   it('returns localized default prompt', () => {
     expect(getDefaultLatteAssistantSystemPrompt('en').startsWith('You are Latte.')).toBe(true)
-    expect(getDefaultLatteAssistantSystemPrompt('zh').includes('你是 Latte')).toBe(true)
-    expect(getDefaultLatteAssistantSystemPrompt('zh').includes('## 爱好')).toBe(true)
-    expect(getDefaultLatteAssistantSystemPrompt('zh').includes('## 典型台词')).toBe(true)
+    expect(getDefaultLatteAssistantSystemPrompt('zh').includes('半夏')).toBe(true)
+    expect(getDefaultLatteAssistantSystemPrompt('zh').includes('魂小小')).toBe(true)
   })
 })

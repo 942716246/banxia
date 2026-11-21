@@ -45,6 +45,9 @@ const DiaryEditorPage = lazy(() =>
 const SummaryDetailPage = lazy(() =>
   import('./features/summary/SummaryDetailPage').then((m) => ({ default: m.SummaryDetailPage }))
 )
+const PetScreen = lazy(() =>
+  import('./features/pet/PetScreen').then((m) => ({ default: m.PetScreen }))
+)
 import {
   initDesktopRendererCacheCoordinator,
   handleRendererDomainMutation
@@ -224,6 +227,7 @@ const AppRoutes = () => {
       <Suspense fallback={null}>
         <Routes location={mainRoutesLocation}>
           <Route path="/welcome" element={<OnboardingScreen />} />
+          <Route path="/pet" element={<PetScreen />} />
 
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomeScreen />} />
@@ -270,6 +274,15 @@ const AppRoutes = () => {
 
 const AppShell: React.FC = () => {
   useLegacyUpgradeRagToast()
+  const location = useLocation()
+
+  if (location.pathname === '/pet') {
+    return (
+      <Suspense fallback={null}>
+        <PetScreen />
+      </Suspense>
+    )
+  }
 
   return (
     <div className={shellStyles.shell}>

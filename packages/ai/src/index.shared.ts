@@ -148,3 +148,8 @@ export { AgentChatActionCoreRunner } from './agent/agent-chat-action-core.runner
 export type { ActionDeps, ActionStreamHost, StreamRunConfig } from './agent/actions/base.action'
 export * from './baishou-agent-gate'
 export * from './session-runtime'
+export {
+  SystemPromptBuilder,
+  type SystemPromptBuilderOptions
+} from './agent/system-prompt.builder'
+

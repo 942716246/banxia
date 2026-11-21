@@ -19,6 +19,7 @@ import { useDialog, useToast } from '@baishou/ui'
 
 type DiaryEditorInitialState = {
   content: string
+  title: string
   selectedDate: Date
   weather: string
   mood: string
@@ -38,10 +39,16 @@ export function useDiaryEditorPage() {
   const toast = useToast()
   const dialog = useDialog()
 
+  const isNumericId = typeof dateStr === 'string' && /^\d+$/.test(dateStr)
+  const entryTypeParam = (searchParams.get('type') as
+    | 'daily_diary'
+    | 'banxia_essay'
+    | 'novel_archive'
+    | null) ?? 'daily_diary'
   const isAppendMode = searchParams.get('append') === '1'
 
   const parseInitialDate = useCallback((): Date => {
-    if (!dateStr || dateStr === 'new') {
+    if (!dateStr || dateStr === 'new' || (typeof dateStr === 'string' && /^\d+$/.test(dateStr))) {
       const dParam = searchParams.get('date')
       return safeParseDate(dParam ?? undefined)
     }
@@ -49,12 +56,20 @@ export function useDiaryEditorPage() {
   }, [dateStr, searchParams])
 
   const [content, setContent] = useState('')
+  const [title, setTitle] = useState('')
+  const [slug, setSlug] = useState('')
+  const [entryType, setEntryType] = useState<'daily_diary' | 'banxia_essay' | 'novel_archive'>(
+    entryTypeParam
+  )
+  const [authorRole, setAuthorRole] = useState<'user' | 'assistant'>(
+    entryTypeParam === 'banxia_essay' ? 'assistant' : 'user'
+  )
   const [selectedDate, setSelectedDate] = useState<Date>(() => parseInitialDate())
   const [weather, setWeather] = useState('')
   const [mood, setMood] = useState('')
   const [isFavorite, setIsFavorite] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
-  const [diaryId, setDiaryId] = useState<number | null>(null)
+  const [diaryId, setDiaryId] = useState<number | null>(() => (isNumericId ? Number(dateStr) : null))
   const [mediaPaths, setMediaPaths] = useState<string[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
@@ -62,6 +77,7 @@ export function useDiaryEditorPage() {
   const initialStateRef = useRef<DiaryEditorInitialState | null>(null)
   const stateSnapshotRef = useRef<DiaryEditorInitialState>({
     content: '',
+    title: '',
     selectedDate: parseInitialDate(),
     weather: '',
     mood: '',
@@ -72,13 +88,14 @@ export function useDiaryEditorPage() {
   useEffect(() => {
     stateSnapshotRef.current = {
       content,
+      title,
       selectedDate,
       weather,
       mood,
       isFavorite,
       mediaPaths
     }
-  }, [content, selectedDate, weather, mood, isFavorite, mediaPaths])
+  }, [content, title, selectedDate, weather, mood, isFavorite, mediaPaths])
 
   const loadTemplateConfig = useCallback(async (): Promise<DiaryTemplateConfig> => {
     try {
@@ -120,10 +137,18 @@ export function useDiaryEditorPage() {
         if (cancelled) return
         setAttachmentBasePath(attPath)
         const now = new Date()
-        const initialContent = resolveDiaryNewEntryContent(templateConfig, now)
+        const initialContent =
+          entryTypeParam === 'daily_diary'
+            ? resolveDiaryNewEntryContent(templateConfig, now)
+            : ''
         setContent(initialContent)
+        setTitle('')
+        setSlug('')
+        setEntryType(entryTypeParam)
+        setAuthorRole(entryTypeParam === 'banxia_essay' ? 'assistant' : 'user')
         initialStateRef.current = {
           content: initialContent,
+          title: '',
           selectedDate: initialDate,
           weather: '',
           mood: '',
@@ -136,9 +161,13 @@ export function useDiaryEditorPage() {
 
       if (api) {
         try {
+          const fetchDiaryPromise = isNumericId
+            ? api.findById(Number(dateStr))
+            : api.findByDate(dateStr)
+
           const [templateConfig, diary, attPath] = await Promise.all([
             loadTemplateConfig(),
-            api.findByDate(dateStr),
+            fetchDiaryPromise,
             fetchAttachmentDir(initialDate)
           ])
           if (cancelled) return
@@ -146,6 +175,7 @@ export function useDiaryEditorPage() {
 
           const now = new Date()
           let initialContent = ''
+          let initialTitle = ''
           let initialWeather = ''
           let initialMood = ''
           let initialFavorite = false
@@ -153,6 +183,15 @@ export function useDiaryEditorPage() {
 
           if (diary) {
             setDiaryId(diary.id || null)
+            const resolvedType = (diary.entryType as any) || 'daily_diary'
+            const resolvedRole =
+              (diary.authorRole as any) || (resolvedType === 'banxia_essay' ? 'assistant' : 'user')
+            setEntryType(resolvedType)
+            setAuthorRole(resolvedRole)
+            initialTitle = diary.title || ''
+            setTitle(initialTitle)
+            setSlug(diary.slug || '')
+
             const parsedTags = normalizeDiaryTags(diary.tags)
             const parsedWeather = normalizeWeatherId(diary.weather || '') || ''
             const parsedMood = normalizeMoodId(diary.mood || '') || ''
@@ -174,12 +213,20 @@ export function useDiaryEditorPage() {
               initialContent = composedExisting
             }
           } else {
-            initialContent = resolveDiaryNewEntryContent(templateConfig, now)
+            initialContent =
+              entryTypeParam === 'daily_diary'
+                ? resolveDiaryNewEntryContent(templateConfig, now)
+                : ''
+            setTitle('')
+            setSlug('')
+            setEntryType(entryTypeParam)
+            setAuthorRole(entryTypeParam === 'banxia_essay' ? 'assistant' : 'user')
           }
 
           setContent(initialContent)
           initialStateRef.current = {
             content: initialContent,
+            title: initialTitle,
             selectedDate: initialDate,
             weather: initialWeather,
             mood: initialMood,
@@ -189,10 +236,14 @@ export function useDiaryEditorPage() {
         } catch (e: unknown) {
           logger.error('Failed to load diary', { error: e, dateStr })
           const fallbackConfig = await loadTemplateConfig()
-          const fallback = resolveDiaryNewEntryContent(fallbackConfig, new Date())
+          const fallback =
+            entryTypeParam === 'daily_diary'
+              ? resolveDiaryNewEntryContent(fallbackConfig, new Date())
+              : ''
           setContent(fallback)
           initialStateRef.current = {
             content: fallback,
+            title: '',
             selectedDate: initialDate,
             weather: '',
             mood: '',
@@ -226,6 +277,7 @@ export function useDiaryEditorPage() {
       const snap = stateSnapshotRef.current
       initialStateRef.current = {
         content: snap.content,
+        title: snap.title,
         selectedDate: snap.selectedDate,
         weather: snap.weather,
         mood: snap.mood,
@@ -247,7 +299,7 @@ export function useDiaryEditorPage() {
 
   const autoSave = useCallback(
     async (newContent: string) => {
-      if (!newContent.trim() && !diaryId) return
+      if (!newContent.trim() && !diaryId && !title.trim()) return
       try {
         if (typeof window !== 'undefined' && (window as any).api?.diary) {
           const selectedDateStr = formatLocalDate(selectedDate)
@@ -256,10 +308,15 @@ export function useDiaryEditorPage() {
           const payload = {
             date: selectedDateStr,
             content: body,
-            title: body
-              .replace(/^#{1,6}\s*/gm, '')
-              .split('\n')[0]
-              .substring(0, 50),
+            title:
+              title.trim() ||
+              body
+                .replace(/^#{1,6}\s*/gm, '')
+                .split('\n')[0]
+                .substring(0, 50),
+            slug: slug.trim() || undefined,
+            entryType,
+            authorRole,
             weather,
             mood,
             isFavorite,
@@ -273,6 +330,7 @@ export function useDiaryEditorPage() {
           setIsDirty(false)
           initialStateRef.current = {
             content: newContent,
+            title,
             selectedDate,
             weather,
             mood,
@@ -284,6 +342,7 @@ export function useDiaryEditorPage() {
         setIsDirty(false)
         initialStateRef.current = {
           content: newContent,
+          title,
           selectedDate,
           weather,
           mood,
@@ -295,8 +354,13 @@ export function useDiaryEditorPage() {
         throw e
       }
     },
-    [selectedDate, weather, mood, isFavorite, diaryId, mediaPaths]
+    [selectedDate, weather, mood, isFavorite, diaryId, mediaPaths, title, slug, entryType, authorRole]
   )
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle)
+    setIsDirty(true)
+  }
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent)
@@ -314,6 +378,9 @@ export function useDiaryEditorPage() {
     if (!initialStateRef.current) return false
     const init = initialStateRef.current
 
+    if (title.trim() !== (init.title || '').trim()) {
+      return true
+    }
     if (
       normalizeDiaryContentForCompare(content) !== normalizeDiaryContentForCompare(init.content)
     ) {
@@ -380,7 +447,9 @@ export function useDiaryEditorPage() {
             const nextFavorite = diary.isFavorite || false
             const nextMedia = diary.mediaPaths || []
 
+            const nextTitle = diary.title || ''
             setDiaryId(diary.id || null)
+            setTitle(nextTitle)
             setWeather(parsedWeather)
             setMood(parsedMood)
             setIsFavorite(nextFavorite)
@@ -389,6 +458,7 @@ export function useDiaryEditorPage() {
             setIsDirty(false)
             initialStateRef.current = {
               content: nextContent,
+              title: nextTitle,
               selectedDate: snap.selectedDate,
               weather: parsedWeather,
               mood: parsedMood,
@@ -471,6 +541,10 @@ export function useDiaryEditorPage() {
     isLoading,
     attachmentBasePath,
     content,
+    title,
+    slug,
+    entryType,
+    authorRole,
     selectedDate,
     weather,
     mood,
@@ -480,6 +554,7 @@ export function useDiaryEditorPage() {
     isSaving: savePhase !== 'idle',
     savePhase,
     handleContentChange,
+    handleTitleChange,
     handleBack,
     handleSave,
     handleQuickSave,

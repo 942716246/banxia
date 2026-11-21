@@ -85,6 +85,9 @@ export const DiaryEditorPage: React.FC = () => {
       }}
     >
       <DiaryEditor
+        title={editor.title}
+        onTitleChange={editor.handleTitleChange}
+        entryType={editor.entryType}
         content={editor.content}
         selectedDate={editor.selectedDate}
         attachmentBasePath={editor.attachmentBasePath}

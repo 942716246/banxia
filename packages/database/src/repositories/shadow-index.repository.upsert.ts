@@ -150,6 +150,10 @@ function buildUpsertSet(
     locationDetail: indexData.locationDetail ?? null,
     isFavorite: indexData.isFavorite,
     hasMedia: indexData.hasMedia,
+    entryType: indexData.entryType ?? 'daily_diary',
+    authorRole: indexData.authorRole ?? 'user',
+    title: indexData.title ?? null,
+    slug: indexData.slug ?? null,
     rawContent,
     tags,
     tagColors
@@ -247,6 +251,8 @@ async function upsertOne(
   const baseValues = {
     vaultId,
     ...indexData,
+    entryType: indexData.entryType ?? 'daily_diary',
+    authorRole: indexData.authorRole ?? 'user',
     filePath,
     rawContent,
     tags,
@@ -335,6 +341,8 @@ function upsertOneSync(
   const baseValues = {
     vaultId,
     ...indexData,
+    entryType: indexData.entryType ?? 'daily_diary',
+    authorRole: indexData.authorRole ?? 'user',
     filePath,
     rawContent,
     tags,

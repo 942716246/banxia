@@ -21,10 +21,8 @@ describe('buildEffectiveAssistantSystemPrompt', () => {
   it('replaces factory Latte self-references with custom assistant name when renamed', () => {
     const factoryPrompt = getDefaultLatteAssistantSystemPrompt('zh')
     const effective = buildEffectiveAssistantSystemPrompt(factoryPrompt, null, '酒狐')
-    expect(effective).toContain('你是 酒狐。')
-    expect(effective).toContain('自称「我」或「酒狐」')
-    expect(effective).not.toContain('你是 Latte（拉提）')
-    expect(effective).not.toContain('自称「我」或「Latte」')
+    expect(effective).toContain('你是**酒狐**')
+    expect(effective).not.toContain('你是**半夏**')
   })
 
   it('keeps factory Latte prompt unchanged when assistant name is still Latte', () => {

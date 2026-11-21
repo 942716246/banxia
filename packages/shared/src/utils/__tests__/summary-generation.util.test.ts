@@ -153,9 +153,9 @@ describe('resolveSummaryGenerationRuntime', () => {
     )
     expect(runtime.mode).toBe('assistant')
     expect(runtime.fellBackToPrompt).toBe(false)
-    expect(runtime.systemPrompt).toContain('你是 酒狐。')
+    expect(runtime.systemPrompt).toContain('你是**酒狐**')
     expect(runtime.systemPrompt).toContain('你是一只喜欢酿酒的狐狸精。')
-    expect(runtime.systemPrompt).not.toContain('你是 Latte（拉提）')
+    expect(runtime.systemPrompt).not.toContain('你是**半夏**')
   })
 })
 

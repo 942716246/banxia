@@ -168,3 +168,8 @@ export type {
   TtsProviderConfig,
   TtsSettings
 } from '../types/tts.types'
+export * from './speech-segment.parser'
+export * from './gpt-sovits.types'
+export * from './audio-tachie-queue'
+export * from './voice-input-controller'
+

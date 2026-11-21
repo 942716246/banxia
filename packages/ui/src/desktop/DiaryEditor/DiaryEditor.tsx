@@ -23,6 +23,9 @@ import { DiaryAttachmentItem, getInsertMarkdown } from './AttachmentUploader'
 import './DiaryEditor.css'
 
 interface DiaryEditorProps {
+  title?: string
+  onTitleChange?: (title: string) => void
+  entryType?: 'banxia_essay' | 'novel_archive' | 'daily_diary'
   content: string
   selectedDate: Date
   isSummaryMode?: boolean
@@ -61,6 +64,9 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export const DiaryEditor: React.FC<DiaryEditorProps> = ({
+  title,
+  onTitleChange,
+  entryType,
   content,
   selectedDate,
   isSummaryMode = false,
@@ -432,6 +438,23 @@ export const DiaryEditor: React.FC<DiaryEditorProps> = ({
           )}
 
           <div className="de-content-section" data-color-mode="light">
+            {(entryType === 'banxia_essay' || entryType === 'novel_archive' || onTitleChange) && (
+              <div className="de-title-bar">
+                <input
+                  type="text"
+                  className="de-title-input"
+                  value={title || ''}
+                  onChange={(e) => onTitleChange?.(e.target.value)}
+                  placeholder={
+                    entryType === 'novel_archive'
+                      ? t('diary.novel_title_placeholder', '输入小说标题...')
+                      : entryType === 'banxia_essay'
+                        ? t('diary.essay_title_placeholder', '输入随笔标题...')
+                        : t('diary.title_placeholder', '输入标题...')
+                  }
+                />
+              </div>
+            )}
             <CodeMirrorEditor
               ref={editorRef}
               content={content}

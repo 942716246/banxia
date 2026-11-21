@@ -33,6 +33,14 @@ export const shadowJournalIndexTable = sqliteTable(
     locationDetail: text('location_detail'),
     isFavorite: integer('is_favorite', { mode: 'boolean' }).notNull().default(false),
     hasMedia: integer('has_media', { mode: 'boolean' }).notNull().default(false),
+    /** 条目分类：daily_diary（日常日记）/ banxia_essay（半夏随笔）/ novel_archive（小说档案） */
+    entryType: text('entry_type').notNull().default('daily_diary'),
+    /** 作者视角归属：user（用户）/ assistant（半夏/AI） */
+    authorRole: text('author_role').notNull().default('user'),
+    /** 随笔/小说标题 */
+    title: text('title'),
+    /** 文件短标识/slug */
+    slug: text('slug'),
     // ── FTS 辅助字段（在主表冗余存储，方便 FTS 虚拟表触发器同步） ──
     /** 原始 Markdown 正文（不含 Frontmatter） */
     rawContent: text('raw_content'),

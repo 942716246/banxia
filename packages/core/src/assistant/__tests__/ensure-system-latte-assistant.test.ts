@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   DEFAULT_LATTE_ASSISTANT_ID,
+  LATTE_ASSISTANT_NAME,
   SYSTEM_LATTE_ASSISTANT_ID,
   getSystemLatteAssistantSeed
 } from '@baishou/shared'
@@ -110,7 +111,7 @@ describe('ensureSystemLatteAssistant', () => {
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         id: SYSTEM_LATTE_ASSISTANT_ID,
-        name: 'Latte',
+        name: LATTE_ASSISTANT_NAME,
         systemPrompt: getSystemLatteAssistantSeed('zh').systemPrompt,
         customSystemPrompt: 'my custom'
       })

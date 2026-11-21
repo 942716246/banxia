@@ -70,4 +70,8 @@ export interface ParsedJournal {
   locationDetail?: string
   isFavorite: boolean
   mediaPaths: string[]
+  entryType?: string
+  authorRole?: string
+  title?: string
+  slug?: string
 }

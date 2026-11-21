@@ -241,6 +241,7 @@ export async function buildAgentSessionToolsAndPrompt(input: {
       notebookIds: workspaceOptions?.notebookIds ?? [],
       notebookNames: workspaceOptions?.notebookNames
     },
+    desktopContext: options.desktopContext,
     skillsInstruction
   })
 
